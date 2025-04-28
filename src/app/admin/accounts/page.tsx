@@ -58,7 +58,7 @@ type Account = {
   type: "customer" | "supplier"; // ADD THIS
 };
 
-export default function accountsPage() {
+export default function AccountsPage() {
   const [customers, setCustomers] = useState<Account[]>([]);
   const [suppliers, setSuppliers] = useState<Account[]>([]);
   // const [accounts, setaccounts] = useState<Account[]>([]);
