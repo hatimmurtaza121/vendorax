@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   let query = supabase
     .from('accounts')
     .select('id, name, email, phone, status, type')
-    .eq('user_uid', user.id);
+    .eq('user_uid', user.id)
+    .order("created_at", { ascending: false });
 
   if (type && ['customer', 'supplier'].includes(type)) {
     query = query.eq('type', type);

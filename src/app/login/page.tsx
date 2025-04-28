@@ -45,7 +45,7 @@ export default function LoginPage() {
               <Link href="#" className="text-sm text-gray-500" prefetch={false}>Forgot password?</Link>
               <div className="flex w-full sm:w-auto gap-4">
                 <Button formAction={login} className="flex-1 py-2 px-6">Log in</Button>
-                <Button formAction={signup} variant="outline" className="flex-1 py-2 px-6">Sign up</Button>
+                {/* <Button formAction={signup} variant="outline" className="flex-1 py-2 px-6">Sign up</Button> */}
               </div>
             </CardFooter>
           </form>

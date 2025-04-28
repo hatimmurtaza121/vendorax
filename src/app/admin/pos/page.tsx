@@ -128,8 +128,16 @@ export default function POSPage() {
     setSelectedProducts(selectedProducts.filter((p) => p.id !== productId));
   };
 
+  const handlePriceChange = (productId: number, newPrice: number) => {
+    setSelectedProducts(
+      selectedProducts.map(p =>
+        p.id === productId ? { ...p, price: newPrice } : p
+      )
+    );
+  };
+
   const total = selectedProducts.reduce(
-    (sum, product) => sum + product.price * (product.quantity || 1),
+    (sum, p) => sum + p.price * (p.quantity || 1),
     0
   );
 
@@ -229,7 +237,23 @@ export default function POSPage() {
               {selectedProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>{product.name}</TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  {/* Edit price */}
+                  <TableCell>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={product.price}
+                      onChange={e =>
+                        handlePriceChange(
+                          product.id,
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      className="w-20 p-1 border rounded"
+                    />
+                  </TableCell>
+                  {/* Quantity */}
                   <TableCell>
                     <input
                       type="number"

@@ -15,7 +15,10 @@ export async function GET(
       order_id,
       product_id,
       quantity,
-      price
+      price,
+      product:product_id (
+        name
+      )
     `)
     .eq("order_id", orderId);
 

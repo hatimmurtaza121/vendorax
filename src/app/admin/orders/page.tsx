@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -53,6 +54,7 @@ interface OrderItem {
   product_id: number;
   quantity: number;
   price: number;
+  product: { name: string };
 }
 
 type Order = {
@@ -136,6 +138,7 @@ export default function OrdersPage() {
       console.error("Failed to fetch order items", err);
     }
   };
+  
   const handleUpdateOrder = async () => {
     if (!selectedOrder || isOrderCancelled) return;
   
@@ -255,7 +258,7 @@ export default function OrdersPage() {
                     <TableCell>{order.account?.name ?? "Unknown"}</TableCell>
                     <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                     <TableCell>{order.status}</TableCell>
-                    <TableCell>{order.created_at}</TableCell>
+                    <TableCell>{formatDate(order.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button size="icon" 
@@ -335,7 +338,12 @@ export default function OrdersPage() {
             </div>
 
             <p><strong>Total:</strong> ${selectedOrder?.total_amount.toFixed(2)}</p>
-            <p><strong>Created:</strong> {selectedOrder?.created_at}</p>
+            <p>
+              <strong>Created:</strong>{" "}
+              {selectedOrder?.created_at
+                ? formatDate(selectedOrder.created_at)
+                : "—"}
+            </p>
           </div>
           <div className="mt-4">
             <h4 className="font-semibold mb-2">Items</h4>
@@ -350,7 +358,7 @@ export default function OrdersPage() {
               <TableBody>
                 {orderItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>Product #{item.product_id}</TableCell>
+                    <TableCell>{item.product?.name ?? "Unknown Product"}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>${item.price.toFixed(2)}</TableCell>
                   </TableRow>
