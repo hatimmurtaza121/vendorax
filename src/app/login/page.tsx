@@ -57,16 +57,16 @@ export default function LoginPage() {
               }
 
               setIsSubmitting(true);
-            
               const formData = new FormData(e.currentTarget);
-              try {
-                await login(formData);
-                router.push('/admin');
-              } catch (err: any) {
-                setErrorMessage(err.message || 'Login failed');
-              } finally {
+              const result = await login(formData);
+
+              if (!result.success) {
+                setErrorMessage(result.message || 'Login failed');
                 setIsSubmitting(false);
+                return;
               }
+
+              router.push('/admin');
             }}
           >
             <CardContent className="space-y-4 py-6">
