@@ -33,7 +33,7 @@ export default function LoginPage() {
       {/* First: Logo & Company Name */}
       <div className="flex flex-col items-center space-y-2">
         <Image
-          src="/vendorax_cleanlogo.png"
+          src="/Vendorax_cleanlogo.png"
           alt="Vendor Ax Logo"
           width={120}
           height={120}
