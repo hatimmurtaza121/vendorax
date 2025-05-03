@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MenuIcon } from "lucide-react" 
 import {
   DropdownMenu,
@@ -14,12 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import {
-  TooltipProvider,
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
@@ -48,6 +42,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClient();
 
+   // Closing sidebar when page changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+  
   // Sign out and send back to login
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -73,9 +72,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           href="/admin"
           className="flex items-center gap-2 text-lg font-semibold"
         >
-          <Package2Icon className="h-6 w-6" />
-          <span className="sr-only">Admin Panel</span>
+          <Image
+            src="/Vendorax_cleanlogo.png"
+            alt="Company Logo"
+            width={28}
+            height={28}
+            sizes="auto"
+            className="h-7 w-7"
+          />
+          {/* <span className="sr-only">Vendora Ax</span> */}
         </Link>
+
         <h1 className="text-xl font-bold">{pageNames[pathname]}</h1>
         <div className="relative ml-auto flex-1 md:grow-0">
           <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -111,112 +118,57 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
+      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-56">
         <aside
-          className={`fixed mt-[56px] inset-y-0 left-0 z-10 w-14 border-r bg-background
+          className={`fixed mt-[56px] inset-y-0 left-0 z-20 w-56 border-r bg-background
                       ${sidebarOpen ? "flex" : "hidden"} sm:flex flex-col`}
         >
-          <nav className="flex flex-col items-center gap-4 px-2 pt-4 sm:py-5">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <LayoutDashboardIcon className="h-5 w-5" />
-                    <span className="sr-only">Dashboard</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Dashboard</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin/cashier"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin/cashier"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <DollarSignIcon className="h-5 w-5" />
-                    <span className="sr-only">Transactions</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Transactions</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin/products"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin/products"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <PackageIcon className="h-5 w-5" />
-                    <span className="sr-only">Inventory</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Inventory</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin/accounts"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin/accounts"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <UsersIcon className="h-5 w-5" />
-                    <span className="sr-only">Accounts</span> 
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Accounts</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin/orders"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin/orders"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <ShoppingBagIcon className="h-5 w-5" />
-                    <span className="sr-only">Orders</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Orders</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/admin/pos"
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      pathname === "/admin/pos"
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground"
-                    } transition-colors hover:text-foreground md:h-8 md:w-8`}
-                  >
-                    <ShoppingCartIcon className="h-5 w-5" />
-                    <span className="sr-only">POS</span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Point of Sale</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <nav className="flex flex-col gap-1 p-4">
+            <Link href="/admin" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <LayoutDashboardIcon className="h-5 w-5" />
+              <span>Dashboard</span>
+            </Link>
+
+            <Link href="/admin/cashier" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/cashier" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <DollarSignIcon className="h-5 w-5" />
+              <span>Transactions</span>
+            </Link>
+
+            <Link href="/admin/products" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/products" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <PackageIcon className="h-5 w-5" />
+              <span>Inventory</span>
+            </Link>
+
+            <Link href="/admin/accounts" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/accounts" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <UsersIcon className="h-5 w-5" />
+              <span>Accounts</span>
+            </Link>
+
+            <Link href="/admin/orders" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/orders" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <ShoppingBagIcon className="h-5 w-5" />
+              <span>Orders</span>
+            </Link>
+
+            <Link href="/admin/pos" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/pos" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <ShoppingCartIcon className="h-5 w-5" />
+              <span>Point of Sale</span>
+            </Link>
           </nav>
         </aside>
+        {/* Overlay for small screens */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-10 bg-black bg-opacity-50 sm:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         <main className="flex-1 p-4 sm:px-6 sm:py-0">{children}</main>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { signup, login } from './actions';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import validator from 'validator';
@@ -108,20 +108,14 @@ export default function LoginPage() {
               )}
 
               <div className="flex w-full gap-4">
-                <Button
+                <LoadingButton
                   type="submit"
-                  disabled={isSubmitting}
+                  isLoading={isSubmitting}
+                  loadingText="Logging in..."
                   className="flex-1 py-2 px-6 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin border-2 border-t-transparent border-white rounded-full" viewBox="0 0 24 24" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Log in"
-                  )}
-                </Button>
+                  Log in
+                </LoadingButton>
               </div>
             </CardFooter>
 
