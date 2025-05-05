@@ -42,6 +42,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 interface Account {
   id: number;
@@ -59,13 +60,13 @@ interface OrderItem {
 
 type Order = {
   id: number;
-  account_id: number;
+  accounts_id: number;
   total_amount: number;
   status: "completed" | "pending" | "cancelled";
+  type: "sale" | "purchase";
   created_at: string;
-  account: {
-    name: string;
-  };
+  accounts: { name: string };
+  transactions?: { status: "paid" | "unpaid" }[];
 };
 
 export default function OrdersPage() {
@@ -78,6 +79,8 @@ export default function OrdersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isOrderCancelled, setIsOrderCancelled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(selectedOrder?.transactions?.[0]?.status || "unpaid");
   const [filters, setFilters] = useState({
     status: "all",
   });
@@ -116,7 +119,7 @@ export default function OrdersPage() {
   }, [orders, filters.status]);
 
   const handleCreateRedirect = () => {
-    router.push("/admin/pos");
+    router.push("/admin/sale");
   };
 
   const handleFilterChange = (type: "status", value: string) => {
@@ -128,6 +131,7 @@ export default function OrdersPage() {
   
   const handleViewOrder = async (order: Order) => {
     setSelectedOrder(order);
+    setPaymentStatus(order.transactions?.[0]?.status || "unpaid");
     setIsOrderCancelled(order.status === "cancelled");
     try {
       const res = await fetch(`/api/orders/${order.id}/items`);
@@ -141,7 +145,8 @@ export default function OrdersPage() {
   
   const handleUpdateOrder = async () => {
     if (!selectedOrder || isOrderCancelled) return;
-  
+    setIsSaving(true);
+
     try {
       const res = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: "PUT",
@@ -150,6 +155,7 @@ export default function OrdersPage() {
         },
         body: JSON.stringify({
           status: selectedOrder.status,
+          paymentStatus: paymentStatus,
         }),
       });
   
@@ -164,11 +170,14 @@ export default function OrdersPage() {
           order.id === updatedOrder.id ? updatedOrder : order
         )
       );
-  
+      setSelectedOrder(updatedOrder);
+
       setShowSuccessToast(true);
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating order:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -245,7 +254,9 @@ export default function OrdersPage() {
                   <TableHead>Order ID</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Delivery Status</TableHead>
+                  <TableHead>Payment Status</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -255,9 +266,11 @@ export default function OrdersPage() {
                 filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.account?.name ?? "Unknown"}</TableCell>
+                    <TableCell>{order.accounts?.name ?? "Unknown"}</TableCell>
                     <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                     <TableCell>{order.status}</TableCell>
+                    <TableCell>{order.transactions?.[0]?.status || '-'}</TableCell>
+                    <TableCell>{order.type}</TableCell>
                     <TableCell>{formatDate(order.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -293,10 +306,10 @@ export default function OrdersPage() {
             <DialogTitle>Order #{selectedOrder?.id} Details</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <p><strong>Account:</strong> {selectedOrder?.account?.name}</p>
+            <p><strong>Account:</strong> {selectedOrder?.accounts?.name}</p>
 
             <div className="flex items-center gap-2">
-              <strong>Status:</strong>
+              <strong>Delivery Status:</strong>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -337,6 +350,27 @@ export default function OrdersPage() {
               </DropdownMenu>
             </div>
 
+            <div className="flex items-center gap-2">
+              <strong>Payment Status:</strong>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="capitalize">
+                    {paymentStatus || "Select status"}
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setPaymentStatus("paid")}>
+                    Paid
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPaymentStatus("unpaid")}>
+                    Unpaid
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <p><strong>Total:</strong> ${selectedOrder?.total_amount.toFixed(2)}</p>
             <p>
               <strong>Created:</strong>{" "}
@@ -369,7 +403,9 @@ export default function OrdersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Close</Button>
             {!isOrderCancelled && (
-              <Button onClick={handleUpdateOrder}>Save Changes</Button>
+              <LoadingButton onClick={handleUpdateOrder} isLoading={isSaving} loadingText="Saving...">
+                Save Changes
+              </LoadingButton>
             )}
           </DialogFooter>
         </DialogContent>

@@ -1,10 +1,5 @@
 "use client";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,7 +19,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { 
   FilePenIcon, 
-  TrashIcon 
+  TrashIcon,
+  PlusCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -333,7 +329,10 @@ export default function Cashier() {
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <Button onClick={handleAddTransaction}>Add</Button>
+                  <Button onClick={handleAddTransaction}>
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Add
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>

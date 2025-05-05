@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+
 export async function PUT(
   request: Request,
   { params }: { params: { orderId: string } }
 ) {
   const supabase = createClient();
-  const body = await request.json();
+  const { status, paymentStatus } = await request.json();
   const orderId = params.orderId;
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,8 +37,7 @@ export async function PUT(
   }
 
   // 3. Inventory adjustment
-  if (existingOrder.status !== 'cancelled' && body.status === 'cancelled') {
-    // ➡️ Revert stock (add back)
+  if (existingOrder.status !== 'cancelled' && status === 'cancelled') {
     for (const item of orderItems) {
       const { data: productData } = await supabase
         .from('products')
@@ -54,18 +54,8 @@ export async function PUT(
       }
     }
 
-    // ➡️ Delete transaction linked to this order
-    const { error: deleteTransactionError } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('order_id', orderId);
-
-    if (deleteTransactionError) {
-      return NextResponse.json({ error: deleteTransactionError.message }, { status: 500 });
-    }
-  } 
-  else if (existingOrder.status === 'cancelled' && (body.status === 'pending' || body.status === 'completed')) {
-    // ➡️ Reduce stock again if reviving the order
+    await supabase.from('transactions').delete().eq('order_id', orderId);
+  } else if (existingOrder.status === 'cancelled' && (status === 'pending' || status === 'completed')) {
     for (const item of orderItems) {
       const { data: productData } = await supabase
         .from('products')
@@ -83,12 +73,24 @@ export async function PUT(
     }
   }
 
-  // 4. Update the order status
+  // 4. Update payment status if provided
+  if (paymentStatus) {
+    const { error: transactionUpdateError } = await supabase
+      .from('transactions')
+      .update({ status: paymentStatus })
+      .eq('order_id', orderId);
+
+    if (transactionUpdateError) {
+      return NextResponse.json({ error: transactionUpdateError.message }, { status: 500 });
+    }
+  }
+
+  // 5. Update the order status
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: body.status })
+    .update({ status })
     .eq('id', orderId)
-    .select('*, account:account_id(name)')
+    .select('*, account:accounts(name), transactions(status)')
     .single();
 
   if (error) {
@@ -97,8 +99,6 @@ export async function PUT(
 
   return NextResponse.json(data);
 }
-
-
 export async function DELETE(
   request: Request,
   { params }: { params: { orderId: string } }

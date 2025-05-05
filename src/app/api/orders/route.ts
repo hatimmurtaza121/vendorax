@@ -1,36 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET() {
   const supabase = createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const { data, error } = await supabase
-    .from('orders')
+    .from("orders")
     .select(`
       id,
-      account_id,
+      accounts_id,
       total_amount,
-      user_uid,
       status,
+      type,
       created_at,
-      account:account_id (
-        name
-      )
-      `)
-    .eq('user_uid', user.id)
+      accounts ( name ),
+      transactions ( status )
+    `)
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("Error fetching orders:", error.message);
+    return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
   }
 
-  return NextResponse.json(data)
+  return NextResponse.json(data);
 }
 
 
@@ -47,10 +40,11 @@ export async function POST(request: Request) {
   const { data: orderData, error: orderError } = await supabase
     .from('orders')
     .insert({
-      account_id: accountId,
+      accounts_id: accountId,
       total_amount: total,
       user_uid: user.id,
-      status: "pending", // Always create as pending
+      status: "pending",
+      type: "sale",
     })
     .select()
     .single();

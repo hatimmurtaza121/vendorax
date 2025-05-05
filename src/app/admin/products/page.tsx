@@ -31,7 +31,7 @@ import {
   FilePenIcon,
   TrashIcon,
   EyeIcon,
-  PlusIcon,
+  PlusCircle,
   LoaderIcon,
   Loader2Icon,
 } from "lucide-react";
@@ -56,6 +56,7 @@ import {
 interface Product {
   id: number;
   name: string;
+  unit: string;
   description: string;
   price: number;
   in_stock: number;
@@ -63,6 +64,8 @@ interface Product {
 }
 
 export default function Products() {
+  const [unit, setUnit] = useState("pcs");
+  const [customUnit, setCustomUnit] = useState("");
   const categories = [
     { value: 'food_grocery', label: 'Food & Grocery' },
     { value: 'beverages', label: 'Beverages' },
@@ -92,6 +95,7 @@ export default function Products() {
   const [isEditProductDialogOpen, setIsEditProductDialogOpen] = useState(false);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const resetSelectedProduct = () => {
     setSelectedProductId(null);
@@ -103,6 +107,11 @@ export default function Products() {
   };
 
   const handleAddProduct = useCallback(async () => {
+    if (!productName.trim() || !productCategory) {
+      setErrorMessage("Product name and category are required.");
+      return;
+    }
+    setErrorMessage(""); // clear if valid
     try {
       const newProduct = {
         name: productName,
@@ -342,7 +351,7 @@ export default function Products() {
               </DropdownMenu>
             </div>
             <Button size="sm" onClick={() => setIsAddProductDialogOpen(true)}>
-              <PlusIcon className="w-4 h-4 mr-2" />
+              <PlusCircle className="w-4 h-4 mr-2" />
               Add Product
             </Button>
           </div>
@@ -356,6 +365,7 @@ export default function Products() {
                   <TableHead>Description</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Stock</TableHead>
+                  <TableHead>Unit</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -368,6 +378,7 @@ export default function Products() {
                     <TableCell>{product.description}</TableCell>
                     <TableCell>${product.price.toFixed(2)}</TableCell>
                     <TableCell>{product.in_stock}</TableCell>
+                    <TableCell>{product.unit}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -467,15 +478,34 @@ export default function Products() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="in_stock" className="text-right">
-                In Stock
+                Stock
               </Label>
-              <Input
-                id="in_stock"
-                type="number"
-                value={productInStock}
-                onChange={(e) => setProductInStock(Number(e.target.value))}
-                className="col-span-3"
-              />
+              <span className="col-span-3 text-gray-700">0</span>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="unit" className="text-right">Unit</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger className="col-span-1">
+                  <SelectValue placeholder="Select a unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pcs">pcs</SelectItem>
+                  <SelectItem value="kg">kg</SelectItem>
+                  <SelectItem value="g">g</SelectItem>
+                  <SelectItem value="ft">ft</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {unit === "other" && (
+                <Input
+                  type="text"
+                  placeholder="Enter custom unit"
+                  value={customUnit}
+                  onChange={(e) => setCustomUnit(e.target.value)}
+                  className="col-span-2"
+                />
+              )}
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">
@@ -499,13 +529,20 @@ export default function Products() {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              onClick={
-                isAddProductDialogOpen ? handleAddProduct : handleEditProduct
-              }
-            >
-              {isAddProductDialogOpen ? "Add Product" : "Update Product"}
-            </Button>
+            <div className="flex flex-col items-end w-full gap-5">
+              {errorMessage && (
+                <p className="text-red-600 font-medium border border-red-400 bg-red-100 p-2 rounded w-full text-center">
+                  {errorMessage}
+                </p>
+              )}
+              <Button
+                onClick={
+                  isAddProductDialogOpen ? handleAddProduct : handleEditProduct
+                }
+              >
+                {isAddProductDialogOpen ? "Add Product" : "Update Product"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

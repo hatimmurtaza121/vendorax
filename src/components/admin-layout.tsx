@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react"
-import { MenuIcon } from "lucide-react" 
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -25,15 +24,19 @@ import {
   ShoppingCartIcon,
   UsersIcon,
   ShoppingBagIcon,
+  FactoryIcon,
+  MenuIcon,
 } from "lucide-react";
 
 const pageNames: { [key: string]: string } = {
   "/admin": "Dashboard",
   "/admin/accounts": "Accounts",
+  "/admin/cashier": "Transactions",
   "/admin/products": "Inventory",
   "/admin/orders": "Orders",
-  "/admin/pos": "Point of Sale",
-  "/admin/cashier": "Transactions",
+  "/admin/sale": "Sale",
+  "/admin/purchase": "Purchase",
+  "/admin/manufacture": "Manufacture",
 };
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -78,7 +81,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             width={28}
             height={28}
             sizes="auto"
-            className="h-7 w-7"
+            className="h-8 w-8"
+            unoptimized
           />
           {/* <span className="sr-only">Vendora Ax</span> */}
         </Link>
@@ -154,10 +158,20 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               <span>Orders</span>
             </Link>
 
-            <Link href="/admin/pos" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
-              ${pathname === "/admin/pos" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+            <Link href="/admin/sale" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/sale" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
               <ShoppingCartIcon className="h-5 w-5" />
-              <span>Point of Sale</span>
+              <span>Sale</span>
+            </Link>
+            <Link href="/admin/purchase" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted
+              ${pathname === "/admin/purchase" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <Package2Icon className="h-5 w-5" />
+              <span>Purchase</span>
+            </Link>
+            <Link href="/admin/manufacture" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted 
+              ${pathname === "/admin/manufacture" ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
+              <FactoryIcon className="h-5 w-5" />
+              <span>Manufacture</span>
             </Link>
           </nav>
         </aside>
