@@ -14,7 +14,10 @@ export async function GET() {
       type,
       created_at,
       accounts ( name ),
-      transactions ( status )
+      transactions (
+        paid_amount,
+        status
+      )
     `)
     .order("created_at", { ascending: false });
 
@@ -26,88 +29,124 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
-
 export async function POST(request: Request) {
-  const supabase = createClient();
-  const { accountId, products, total, paymentMethodId, paymentStatus } = await request.json();
+  const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    // ── Auth ───────────────────────────────────────────────
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  // 1. Insert the order
-  const { data: orderData, error: orderError } = await supabase
-    .from('orders')
-    .insert({
-      accounts_id: accountId,
-      total_amount: total,
-      user_uid: user.id,
-      status: "pending",
-      type: "sale",
-    })
-    .select()
-    .single();
+    // ── Payload ────────────────────────────────────────────
+    const {
+      accountId,
+      products: items,
+      total_amount,
+      type,
+      paid_amount = 0,
+    } = await request.json()
 
-  if (orderError) {
-    return NextResponse.json({ error: orderError.message }, { status: 500 });
-  }
+    // ── 1) Create Order ────────────────────────────────────
+    const { data: order, error: orderErr } = await supabase
+      .from('orders')
+      .insert({
+        accounts_id:  accountId,
+        total_amount,
+        type,
+        status: 'pending',
+        user_uid:     user.id,
+      })
+      .select()
+      .single()
+    if (orderErr || !order) {
+      console.error('Order insert error', orderErr)
+      return NextResponse.json(
+        { error: orderErr?.message || 'Order insert failed' },
+        { status: 500 }
+      )
+    }
 
-  // 2. Insert the order items
-  const orderItems = products.map((product: any) => ({
-    order_id: orderData.id,
-    product_id: product.id,
-    quantity: product.quantity,
-    price: product.price,
-  }));
+    // ── 2) Create Order Items ──────────────────────────────
+    const { data: orderItems, error: itemsErr } = await supabase
+      .from('order_items')
+      .insert(
+        items.map((it: any) => ({
+          order_id:   order.id,
+          product_id: it.productId,
+          quantity:   it.quantity,
+          price:      it.price,
+        }))
+      )
+      .select()        // ← Crucial: without this, `data` will be null
+    if (itemsErr || !orderItems) {
+      console.error('Order items insert error', itemsErr)
+      return NextResponse.json(
+        { error: itemsErr?.message || 'Order items insert failed' },
+        { status: 500 }
+      )
+    }
 
-  const { error: itemsError } = await supabase
-    .from('order_items')
-    .insert(orderItems);
+    // ── 3) Adjust Stock & Log Movements ───────────────────
+    for (const it of orderItems) {
+      const { data: prod, error: prodErr } = await supabase
+        .from('products')
+        .select('in_stock')
+        .eq('id', it.product_id)
+        .single()
+      if (prodErr || prod === null) throw prodErr || new Error('Missing product')
 
-  if (itemsError) {
-    // Rollback created order
-    await supabase.from('orders').delete().eq('id', orderData.id);
-    return NextResponse.json({ error: itemsError.message }, { status: 500 });
-  }
+      const newStock =
+        type === 'sale'
+          ? prod.in_stock - it.quantity
+          : prod.in_stock + it.quantity
 
-  // 3. Decrease stock
-  for (const item of products) {
-    const { data: productData } = await supabase
-      .from('products')
-      .select('in_stock')
-      .eq('id', item.id)
-      .single();
-
-    if (productData) {
-      const newStock = productData.in_stock - item.quantity;
       await supabase
         .from('products')
         .update({ in_stock: newStock })
-        .eq('id', item.id);
+        .eq('id', it.product_id)
+
+      await supabase.from('stock_movements').insert({
+        product_id:   it.product_id,
+        type,                         // 'sale' or 'purchase'
+        reference_id: order.id,
+        description:  `${type} order ${order.id}`,
+        user_uid:     user.id,
+      })
     }
+
+    // ── 4) Create Transaction ──────────────────────────────
+    const { data: tx, error: txErr } = await supabase
+      .from('transactions')
+      .insert({
+        order_id:    order.id,
+        amount:      total_amount,
+        paid_amount,
+        user_uid:    user.id,
+        type:        type === 'sale' ? 'income' : 'expense',
+        category:    type === 'sale' ? 'selling' : 'purchase',
+        description: `Transaction for order #${order.id}`,
+      })
+      .select()
+      
+    if (txErr || !tx) {
+      console.error('Transaction insert error', txErr)
+      return NextResponse.json(
+        { error: txErr?.message || 'Transaction insert failed' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ order, orderItems, transaction: tx })
+  } catch (err: any) {
+    console.error('Unexpected POST /api/orders error', err)
+    return NextResponse.json(
+      { error: err.message || 'Internal Server Error' },
+      { status: 500 }
+    )
   }
-
-  // 4. Insert the transaction
-  const { error: transactionError } = await supabase
-    .from('transactions')
-    .insert({
-      order_id: orderData.id,
-      payment_method_id: paymentMethodId,
-      amount: total,
-      user_uid: user.id,
-      type: "income",
-      category: "selling",
-      status: paymentStatus?.toLowerCase().trim() || "paid", // paid/unpaid from frontend
-      description: `Payment for order #${orderData.id}`,
-    });
-
-  if (transactionError) {
-    // Optional: rollback order + items (depends if you want strong consistency)
-    await supabase.from('order_items').delete().eq('order_id', orderData.id);
-    await supabase.from('orders').delete().eq('id', orderData.id);
-    return NextResponse.json({ error: transactionError.message }, { status: 500 });
-  }
-
-  return NextResponse.json(orderData);
 }

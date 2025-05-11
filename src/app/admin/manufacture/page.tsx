@@ -50,14 +50,13 @@ function Section({
   products,
   errors = [],
 }: SectionProps) {
-  const selectableProducts = products.filter((p) => p.in_stock > 0);
-
+  
   return (
     <Card>
       <CardHeader className="container mx-auto p-6">
         <CardTitle>{title}</CardTitle>
         <Combobox
-          items={selectableProducts}
+          items={products}
           placeholder={`Select ${title}`}
           noSelect
           onSelect={(val) => {
@@ -150,7 +149,7 @@ export default function ManufacturePage() {
   const [rawErrors, setRawErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  
   useEffect(() => {
     const fetchProducts = async () => {
       try {

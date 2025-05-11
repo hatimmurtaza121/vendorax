@@ -1,138 +1,199 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-
+import { createClient } from '@/lib/supabase/server'
 
 export async function PUT(
   request: Request,
   { params }: { params: { orderId: string } }
 ) {
-  const supabase = createClient();
-  const { status, paymentStatus } = await request.json();
-  const orderId = params.orderId;
+  const supabase = createClient()
+  const orderId   = Number(params.orderId)
+  const payload   = await request.json()
+  const { status, paid_amount } = payload
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // 1) Auth
+  const {
+    data: { user },
+    error: authErr
+  } = await supabase.auth.getUser()
+  if (authErr || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // 1. Fetch existing order
-  const { data: existingOrder, error: existingOrderError } = await supabase
+  // 2) Load existing order status
+  const { data: existingArr, error: ordErr } = await supabase
     .from('orders')
-    .select('id, status')
+    .select('status')
     .eq('id', orderId)
-    .single();
-
-  if (existingOrderError || !existingOrder) {
-    return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+  if (ordErr || !existingArr?.length) {
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }
+  const existingStatus = existingArr[0].status
 
-  // 2. Fetch order items
-  const { data: orderItems, error: orderItemsError } = await supabase
+  // 3) Load order items for stock adjustments
+  const { data: itemsArr, error: itemsErr } = await supabase
     .from('order_items')
-    .select('product_id, quantity')
-    .eq('order_id', orderId);
-
-  if (orderItemsError || !orderItems) {
-    return NextResponse.json({ error: 'Order items not found' }, { status: 404 });
+    .select('product_id,quantity')
+    .eq('order_id', orderId)
+  if (itemsErr) {
+    return NextResponse.json({ error: 'Order items not found' }, { status: 404 })
   }
 
-  // 3. Inventory adjustment
-  if (existingOrder.status !== 'cancelled' && status === 'cancelled') {
-    for (const item of orderItems) {
-      const { data: productData } = await supabase
+  // 4) Adjust stock on cancellation / uncancellation
+  if (existingStatus !== 'cancelled' && status === 'cancelled') {
+    // refund stock & delete transaction
+    for (const it of itemsArr) {
+      const { data: prodArr } = await supabase
         .from('products')
         .select('in_stock')
-        .eq('id', item.product_id)
-        .single();
-
-      if (productData) {
-        const newStock = productData.in_stock + item.quantity;
+        .eq('id', it.product_id)
+      const prod = prodArr?.[0]
+      if (prod) {
         await supabase
           .from('products')
-          .update({ in_stock: newStock })
-          .eq('id', item.product_id);
+          .update({ in_stock: prod.in_stock + it.quantity })
+          .eq('id', it.product_id)
       }
     }
-
-    await supabase.from('transactions').delete().eq('order_id', orderId);
-  } else if (existingOrder.status === 'cancelled' && (status === 'pending' || status === 'completed')) {
-    for (const item of orderItems) {
-      const { data: productData } = await supabase
-        .from('products')
-        .select('in_stock')
-        .eq('id', item.product_id)
-        .single();
-
-      if (productData) {
-        const newStock = productData.in_stock - item.quantity;
-        await supabase
-          .from('products')
-          .update({ in_stock: newStock })
-          .eq('id', item.product_id);
-      }
-    }
-  }
-
-  // 4. Update payment status if provided
-  if (paymentStatus) {
-    const { error: transactionUpdateError } = await supabase
+    await supabase
       .from('transactions')
-      .update({ status: paymentStatus })
-      .eq('order_id', orderId);
+      .delete()
+      .eq('order_id', orderId)
+      .eq('user_uid', user.id)
 
-    if (transactionUpdateError) {
-      return NextResponse.json({ error: transactionUpdateError.message }, { status: 500 });
+  } else if (
+    existingStatus === 'cancelled' &&
+    (status === 'pending' || status === 'completed')
+  ) {
+    // re-apply stock
+    for (const it of itemsArr) {
+      const { data: prodArr } = await supabase
+        .from('products')
+        .select('in_stock')
+        .eq('id', it.product_id)
+      const prod = prodArr?.[0]
+      if (prod) {
+        await supabase
+          .from('products')
+          .update({ in_stock: prod.in_stock - it.quantity })
+          .eq('id', it.product_id)
+      }
     }
   }
 
-  // 5. Update the order status
-  const { data, error } = await supabase
-    .from('orders')
-    .update({ status })
-    .eq('id', orderId)
-    .select('*, account:accounts(name), transactions(status)')
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // 5) Update paid_amount on the transaction (DB trigger recalculates status)
+  if (paid_amount != null) {
+    const { error: txErr } = await supabase
+      .from('transactions')
+      .update({ paid_amount })
+      .eq('order_id', orderId)
+      .eq('user_uid', user.id)
+    if (txErr) {
+      console.error('Transaction update error', txErr)
+      return NextResponse.json({ error: txErr.message }, { status: 500 })
+    }
   }
 
-  return NextResponse.json(data);
+  // 6) Build order update payload (only include status if provided)
+  const orderUpdate: Record<string, unknown> = {}
+  if (status !== undefined) {
+    orderUpdate.status = status
+  }
+
+  // 7) Update order (or skip if no status change) and return joined data
+  let ordArr: any[] | null = null
+  let updErr: any = null
+
+  if (orderUpdate.status) {
+    ;({ data: ordArr, error: updErr } = await supabase
+      .from('orders')
+      .update(orderUpdate)
+      .eq('id', orderId)
+      .select(`
+        *,
+        accounts ( name ),
+        transactions ( paid_amount, status )
+      `))
+  } else {
+    ;({ data: ordArr, error: updErr } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        accounts ( name ),
+        transactions ( paid_amount, status )
+      `)
+      .eq('id', orderId))
+  }
+
+  if (updErr || !ordArr?.length) {
+    console.error('Order update error', updErr)
+    return NextResponse.json(
+      { error: updErr?.message || 'Order update failed' },
+      { status: 500 }
+    )
+  }
+
+  // 8) Return the updated order record
+  return NextResponse.json(ordArr[0])
 }
+
+
 export async function DELETE(
   request: Request,
   { params }: { params: { orderId: string } }
 ) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   const orderId = params.orderId;
 
-  // First, delete related order_items
-  const { error: orderItemsError } = await supabase
-    .from('order_items')
+  // 1. delete all transactions for this order
+  const { error: txnErr } = await supabase
+    .from("transactions")
     .delete()
-    .eq('order_id', orderId)
-
-  if (orderItemsError) {
-    return NextResponse.json({ error: orderItemsError.message }, { status: 500 })
+    .eq("order_id", orderId);
+  if (txnErr) {
+    return NextResponse.json(
+      { error: txnErr.message },
+      { status: 500 }
+    );
   }
 
-  // Then, delete the order
-  const { error: orderError } = await supabase
-    .from('orders')
+  // 2. delete all order_items for this order
+  const { error: itemsErr } = await supabase
+    .from("order_items")
     .delete()
-    .eq('id', orderId)
-    .eq('user_uid', user.id)
-
-  if (orderError) {
-    return NextResponse.json({ error: orderError.message }, { status: 500 })
+    .eq("order_id", orderId);
+  if (itemsErr) {
+    return NextResponse.json(
+      { error: itemsErr.message },
+      { status: 500 }
+    );
   }
 
-  return NextResponse.json({ message: 'Order and related items deleted successfully' })
+  // 3. finally delete the order itself (only if it belongs to the current user)
+  const { error: orderErr } = await supabase
+    .from("orders")
+    .delete()
+    .eq("id", orderId)
+    .eq("user_uid", user.id);
+  if (orderErr) {
+    return NextResponse.json(
+      { error: orderErr.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json(
+    { message: "Order and all related records deleted." },
+    { status: 200 }
+  );
 }

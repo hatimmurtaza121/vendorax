@@ -151,7 +151,7 @@ export default function SalesPage() {
       return;
     }
   
-    if (paidAmount !== "" && (paidAmount < 0 || paidAmount > total)) {
+    if (paidAmount == "" || (paidAmount < 0 || paidAmount > total)) {
       setErrorMessage("Paid amount must be between 0 and total.");
       setIsCreating(false);
       return;
@@ -181,16 +181,15 @@ export default function SalesPage() {
         body: JSON.stringify({
           accountId: customerId,
           products: selectedProducts.map(p => ({
-            id: p.id,
-            quantity: p.quantity,
-            price: p.price,
+            productId: p.id,
+            quantity:  p.quantity,
+            price:     p.price,
           })),
-          total,
+          total_amount: total,
           type: "sale",
-          paid_amount: typeof paidAmount === "number" ? paidAmount : 0,
+          paid_amount:   typeof paidAmount === "number" ? paidAmount : 0,
         }),
       });
-  
       if (!response.ok) throw new Error("Failed to create order.");
   
       // Clear form
@@ -211,7 +210,7 @@ export default function SalesPage() {
         <CardHeader>
           <CardTitle>Sale Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 py-4 items-end">
+        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 pb-4 items-end">
           <div className="flex-auto w-full sm:w-1/2">
             <Combobox
               items={accounts}
@@ -221,7 +220,7 @@ export default function SalesPage() {
           </div>
           <div className="flex-auto w-full sm:w-1/2">
             <label htmlFor="paid_amount" className="block text-sm font-medium mb-1">
-              Paid Amount
+              Paid Amount:
             </label>
             <Input
               id="paid_amount"

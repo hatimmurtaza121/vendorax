@@ -66,7 +66,7 @@ type Order = {
   type: "sale" | "purchase";
   created_at: string;
   accounts: { name: string };
-  transactions?: { status: "paid" | "unpaid" }[];
+  transactions?: { status: "paid" | "unpaid" | "partial"; paid_amount: number }[];
 };
 
 export default function OrdersPage() {
@@ -77,35 +77,31 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [isOrderCancelled, setIsOrderCancelled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState(selectedOrder?.transactions?.[0]?.status || "unpaid");
-  const [filters, setFilters] = useState({
-    status: "all",
-  });
+  const [nextPayment, setNextPayment] = useState<number | "">("");
+  const [filters, setFilters] = useState({ status: "all" });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const router = useRouter();
 
   useEffect(() => {
-    const fetchAll = async () => {
+    async function fetchAll() {
       try {
         const [ordersRes, accountsRes] = await Promise.all([
           fetch("/api/orders"),
           fetch("/api/accounts"),
         ]);
-        const [ordersData, accountsData] = await Promise.all([
-          ordersRes.json(),
-          accountsRes.json(),
-        ]);
+        const ordersData = await ordersRes.json();
+        const accountsData = await accountsRes.json();
         setOrders(ordersData);
         setAccounts(accountsData);
-      } catch (err) {
+      } catch {
         setError("Error loading data");
       } finally {
         setLoading(false);
       }
-    };
+    }
     fetchAll();
   }, []);
 
@@ -118,78 +114,103 @@ export default function OrdersPage() {
     });
   }, [orders, filters.status]);
 
-  const handleCreateRedirect = () => {
-    router.push("/admin/sale");
-  };
+  const handleCreateRedirect = () => router.push("/admin/sale");
 
   const handleFilterChange = (type: "status", value: string) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      [type]: value,
-    }));
+    setFilters(prev => ({ ...prev, [type]: value }));
   };
   
+  async function handleDeleteOrder() {
+    if (!selectedOrder) return;
+    if (!confirm("Are you sure you want to delete this order?")) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+
+      // Remove from local state
+      setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error(err);
+      // show error toast if you have one
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const handleViewOrder = async (order: Order) => {
     setSelectedOrder(order);
-    setPaymentStatus(order.transactions?.[0]?.status || "unpaid");
     setIsOrderCancelled(order.status === "cancelled");
+    setNextPayment("");
     try {
       const res = await fetch(`/api/orders/${order.id}/items`);
       const items = await res.json();
       setOrderItems(items);
       setIsDialogOpen(true);
     } catch (err) {
-      console.error("Failed to fetch order items", err);
+      console.error(err);
     }
   };
   
   const handleUpdateOrder = async () => {
-    if (!selectedOrder || isOrderCancelled) return;
+    if (!selectedOrder) return;
     setIsSaving(true);
-
     try {
+      // compute new paid amount
+      const currentPaid = selectedOrder.transactions?.[0]?.paid_amount || 0;
+      const add = typeof nextPayment === 'number' ? nextPayment : 0;
+      const newPaid = currentPaid + add;
       const res = await fetch(`/api/orders/${selectedOrder.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: selectedOrder.status,
-          paymentStatus: paymentStatus,
+          paid_amount: newPaid,
+          status: selectedOrder.status
         }),
       });
-  
-      if (!res.ok) {
-        throw new Error("Failed to update order");
-      }
-  
-      const updatedOrder = await res.json();
-
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === updatedOrder.id ? updatedOrder : order
+      if (!res.ok) throw await res.json();
+      // update local state
+      setOrders(prev =>
+        prev.map(o =>
+          o.id === selectedOrder.id
+            ? {
+                ...o,
+                status: selectedOrder.status,
+                transactions: [{ ...o.transactions![0], paid_amount: newPaid }]
+              }
+            : o
         )
       );
-      setSelectedOrder(updatedOrder);
-
-      setShowSuccessToast(true);
+      setSelectedOrder(o =>
+        o
+          ? {
+              ...o,
+              status: selectedOrder.status,
+              transactions: [{ ...o.transactions![0], paid_amount: newPaid }]
+            }
+          : o
+      );
+      setNextPayment("");
       setIsDialogOpen(false);
-    } catch (error) {
-      console.error("Error updating order:", error);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.error || 'Failed to update payment');
     } finally {
       setIsSaving(false);
     }
   };
-  
 
+  if (loading) {
+    return <div className="h-[80vh] flex items-center justify-center"><Loader2Icon className="h-12 w-12 animate-spin"/></div>;
+  }
+  
   return (
     <>
-      {showSuccessToast && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded shadow-lg">
-          Order updated successfully!
-        </div>
-      )}
-
+      {error && <div className="text-red-600 p-4">{error}</div>}
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
           <div className="flex items-center justify-between">
@@ -210,33 +231,16 @@ export default function OrdersPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {['all','pending','completed','cancelled'].map(st => (
                   <DropdownMenuCheckboxItem
-                    checked={filters.status === "all"}
-                    onCheckedChange={() => handleFilterChange("status", "all")}
-                  >
-                    All
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.status === "pending"}
-                    onCheckedChange={() => handleFilterChange("status", "pending")}
-                  >
-                    Pending
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.status === "completed"}
-                    onCheckedChange={() => handleFilterChange("status", "completed")}
-                  >
-                    Completed
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.status === "cancelled"}
-                    onCheckedChange={() => handleFilterChange("status", "cancelled")}
-                  >
-                    Cancelled
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
+                    key={st}
+                    checked={filters.status === st}
+                    onCheckedChange={() => handleFilterChange('status', st)}
+                  >{st.charAt(0).toUpperCase()+st.slice(1)}</DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
               </DropdownMenu>
 
             </div>
@@ -253,8 +257,9 @@ export default function OrdersPage() {
                 <TableRow>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Account</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Delivery Status</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead>Amount Left</TableHead>
+                  <TableHead>Order Status</TableHead>
                   <TableHead>Payment Status</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
@@ -262,85 +267,72 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.isArray(orders) && orders.length > 0 ? (
-                filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.accounts?.name ?? "Unknown"}</TableCell>
-                    <TableCell>${order.total_amount.toFixed(2)}</TableCell>
-                    <TableCell>{order.status}</TableCell>
-                    <TableCell>{order.transactions?.[0]?.status || '-'}</TableCell>
-                    <TableCell>{order.type}</TableCell>
-                    <TableCell>{formatDate(order.created_at)}</TableCell>
+                {filteredOrders.map(o => {
+                  const paid = o.transactions?.[0]?.paid_amount || 0;
+                  const left = o.total_amount - paid;
+                  return (
+                  <TableRow key={o.id}>
+                    <TableCell>{o.id}</TableCell>
+                    <TableCell>{o.accounts.name}</TableCell>
+                    <TableCell>${o.total_amount.toFixed(2)}</TableCell>
+                    <TableCell>${left.toFixed(2)}</TableCell>
+                    <TableCell className="capitalize">{o.status}</TableCell>
+                    <TableCell>{o.transactions?.[0]?.status}</TableCell>
+                    <TableCell>{o.type}</TableCell>
+                    <TableCell>{formatDate(o.created_at)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" 
-                          variant="ghost"
-                          className="hover:bg-blue-100 transition rounded-full" 
-                          onClick={() => handleViewOrder(order)}
-                        >
-                        <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition" />
-                        <span className="sr-only">View</span>
-                        </Button>
-                      </div>
+                      <Button size="icon" variant="ghost" className="hover:bg-blue-100 transition rounded-full" onClick={()=>handleViewOrder(o)}>
+                        <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition"/>
+                      </Button>
                     </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    No orders found
-                  </TableCell>
-                </TableRow>
-              )}
-
+                  </TableRow>);
+                })}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
+      {/* Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Order #{selectedOrder?.id} Details</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p><strong>Account:</strong> {selectedOrder?.accounts?.name}</p>
-
+        <DialogContent>
+          <DialogHeader><DialogTitle>Order #{selectedOrder?.id} Details</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p><strong>Account:</strong> {selectedOrder?.accounts.name}</p>
+            {/* Order Status */}
             <div className="flex items-center gap-2">
-              <strong>Delivery Status:</strong>
-
+              <span className="block text-sm font-medium">Order Status</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="capitalize">
-                    {selectedOrder?.status || "Select status"}
+                    {selectedOrder?.status}
                   </Button>
                 </DropdownMenuTrigger>
-
-                <DropdownMenuContent>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() =>
-                      setSelectedOrder((prev) =>
-                        prev ? { ...prev, status: "pending" } : null
+                    onSelect={() =>
+                      setSelectedOrder(o =>
+                        o ? { ...o, status: "pending" } : o
                       )
                     }
                   >
                     Pending
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() =>
-                      setSelectedOrder((prev) =>
-                        prev ? { ...prev, status: "completed" } : null
+                    onSelect={() =>
+                      setSelectedOrder(o =>
+                        o ? { ...o, status: "completed" } : o
                       )
                     }
                   >
                     Completed
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() =>
-                      setSelectedOrder((prev) =>
-                        prev ? { ...prev, status: "cancelled" } : null
+                    onSelect={() =>
+                      setSelectedOrder(o =>
+                        o ? { ...o, status: "cancelled" } : o
                       )
                     }
                   >
@@ -350,34 +342,19 @@ export default function OrdersPage() {
               </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-2">
-              <strong>Payment Status:</strong>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="capitalize">
-                    {paymentStatus || "Select status"}
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setPaymentStatus("paid")}>
-                    Paid
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setPaymentStatus("unpaid")}>
-                    Unpaid
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
+            <p><strong>Payment Status:</strong> {selectedOrder?.transactions?.[0]?.status}</p>
+            <p><strong>Amount Left:</strong> ${( (selectedOrder?.total_amount||0) - (selectedOrder?.transactions?.[0]?.paid_amount||0) ).toFixed(2)}</p>
+            {['unpaid','partial'].includes(selectedOrder?.transactions?.[0]?.status||'') && (
+            <div>
+              <label htmlFor="next_payment" className="block text-sm font-medium mb-1">Next Payment</label>
+              <Input id="next_payment" type="number" min={0} step={0.01}
+                value={nextPayment}
+                onChange={e=>{
+                  const v=e.target.value; setNextPayment(v===''? '': parseFloat(v));
+                }} placeholder="Enter additional payment"/>
+            </div>)}
             <p><strong>Total:</strong> ${selectedOrder?.total_amount.toFixed(2)}</p>
-            <p>
-              <strong>Created:</strong>{" "}
-              {selectedOrder?.created_at
-                ? formatDate(selectedOrder.created_at)
-                : "—"}
-            </p>
+            <p><strong>Created:</strong> {selectedOrder?.created_at ? formatDate(selectedOrder.created_at):'—'}</p>
           </div>
           <div className="mt-4">
             <h4 className="font-semibold mb-2">Items</h4>
@@ -390,23 +367,31 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orderItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.product?.name ?? "Unknown Product"}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>${item.price.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
+                {orderItems.map(item=><TableRow key={item.id}><TableCell>{item.product.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>${item.price.toFixed(2)}</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Close
+            </Button>
             {!isOrderCancelled && (
-              <LoadingButton onClick={handleUpdateOrder} isLoading={isSaving} loadingText="Saving...">
+              <LoadingButton
+                onClick={handleUpdateOrder}
+                isLoading={isSaving}
+                loadingText="Saving..."
+              >
                 Save Changes
               </LoadingButton>
             )}
+            <LoadingButton
+              variant="destructive"
+              onClick={handleDeleteOrder}
+              isLoading={isDeleting}
+              loadingText="Deleting..."
+            >
+              Delete Order
+            </LoadingButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
