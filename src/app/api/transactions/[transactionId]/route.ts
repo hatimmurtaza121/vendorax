@@ -9,13 +9,11 @@ export async function PUT(
   const { transactionId } = params;
   const body = await request.json();
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const { description, category, type, amount, status } = body;
+  const { description, category, type, amount, paid_amount } = body;
 
   const { data, error } = await supabase
     .from("transactions")
@@ -24,19 +22,21 @@ export async function PUT(
       category,
       type,
       amount,
-      status,
+      paid_amount
     })
-    .eq("id", transactionId)
+    .eq("id", Number(transactionId))
     .eq("user_uid", user.id)
     .select()
-    .single(); // fetch the updated row back
+    .single();
 
   if (error) {
+    console.error("Supabase update error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(data);
 }
+
 
 export async function DELETE(
   request: Request,

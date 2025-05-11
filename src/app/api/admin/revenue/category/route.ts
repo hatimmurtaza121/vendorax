@@ -23,9 +23,9 @@ export async function GET(request: Request) {
   }
 
   const revenueByCategory = revenueData?.reduce((acc, item) => {
-    const category = item.category; // Acessando a categoria do primeiro produto
+    const category = item.category;
     if (!category) {
-      return acc; // Se a categoria não existir, continuar para o último item
+      return acc;
     }
     const revenue = item.amount;
     if (acc[category]) {

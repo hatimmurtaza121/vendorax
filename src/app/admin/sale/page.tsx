@@ -15,6 +15,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { PlusCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 // Types
 
@@ -45,12 +46,7 @@ export default function SalesPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [productErrors, setProductErrors] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-
-  const paymentStatuses = [
-    { id: "paid", name: "Paid" },
-    { id: "unpaid", name: "Unpaid" },
-  ];
-  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [paidAmount, setPaidAmount] = useState<number | "">("");
 
   useEffect(() => {
     fetchProducts();
@@ -155,9 +151,8 @@ export default function SalesPage() {
       return;
     }
   
-    // Payment status check
-    if (!paymentStatus) {
-      setErrorMessage("Please select a payment status.");
+    if (paidAmount !== "" && (paidAmount < 0 || paidAmount > total)) {
+      setErrorMessage("Paid amount must be between 0 and total.");
       setIsCreating(false);
       return;
     }
@@ -191,8 +186,8 @@ export default function SalesPage() {
             price: p.price,
           })),
           total,
-          paymentStatus,
           type: "sale",
+          paid_amount: typeof paidAmount === "number" ? paidAmount : 0,
         }),
       });
   
@@ -202,7 +197,6 @@ export default function SalesPage() {
       setIsCreating(false);
       setSelectedProducts([]);
       setSelectedaccount(null);
-      setPaymentStatus(null);
     } catch (error) {
       console.error("Error creating order:", error);
       setErrorMessage("Failed to create order.");
@@ -217,7 +211,7 @@ export default function SalesPage() {
         <CardHeader>
           <CardTitle>Sale Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 py-4">
+        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 py-4 items-end">
           <div className="flex-auto w-full sm:w-1/2">
             <Combobox
               items={accounts}
@@ -226,10 +220,25 @@ export default function SalesPage() {
             />
           </div>
           <div className="flex-auto w-full sm:w-1/2">
-            <Combobox
-              items={paymentStatuses}
-              placeholder="Select Payment Status"
-              onSelect={(statusId) => setPaymentStatus(statusId.toString())}
+            <label htmlFor="paid_amount" className="block text-sm font-medium mb-1">
+              Paid Amount
+            </label>
+            <Input
+              id="paid_amount"
+              name="paid_amount"
+              type="number"
+              min={0}
+              value={paidAmount}
+              onChange={e => {
+                const v = e.target.value
+                if (v === "") {
+                  setPaidAmount("")
+                } else {
+                  const num = parseFloat(v)
+                  setPaidAmount(num < 0 ? 0 : num)
+                }
+              }}
+              placeholder="Paid Amount"
             />
           </div>
         </CardContent>

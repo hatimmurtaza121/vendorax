@@ -51,6 +51,7 @@ interface Transaction {
   type: TransactionType;
   category: string;
   created_at: string;
+  paid_amount: number;
   amount: number;
   status: string;
 }
@@ -68,35 +69,41 @@ export default function Cashier() {
     description: "",
     category: "",
     type: "income",
+    paid_amount: 0,
     amount: 0,
-    status: "paid",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewTransaction((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const parsedValue = type === "number" ? parseFloat(value) : value;
+    setNewTransaction((prev) => ({ ...prev, [name]: parsedValue }));
+  };
+
+  const computeStatus = () => {
+    const paid = newTransaction.paid_amount || 0;
+    const total = newTransaction.amount || 0;
+    if (paid >= total) return "paid";
+    if (paid <= 0) return "unpaid";
+    return "partial";
   };
 
   const handleAddTransaction = async () => {
     try {
+      const payload = {
+        ...newTransaction,
+      };
       const response = await fetch("/api/transactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newTransaction),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         const addedTransaction = await response.json();
         setTransactions((prev) => [...prev, addedTransaction]);
-        setNewTransaction({
-          description: "",
-          category: "",
-          type: "income",
-          amount: 0,
-          status: "paid",
-        });
+        setNewTransaction({ description: "", category: "", type: "income", paid_amount: 0, amount: 0 });
       } else {
         console.error("Failed to add transaction");
       }
@@ -110,15 +117,10 @@ export default function Cashier() {
     try {
       const response = await fetch(
         `/api/transactions/${transactionToDelete.id}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
-
       if (response.ok) {
-        setTransactions(
-          transactions.filter((t) => t.id !== transactionToDelete.id)
-        );
+        setTransactions((prev) => prev.filter((t) => t.id !== transactionToDelete.id));
         setIsDeleteConfirmationOpen(false);
         setTransactionToDelete(null);
       } else {
@@ -127,7 +129,7 @@ export default function Cashier() {
     } catch (error) {
       console.error("Error deleting transaction:", error);
     }
-  }, [transactionToDelete, transactions]);
+  }, [transactionToDelete]);
 
   const handleEditTransaction = async () => {
     if (!transactionToEdit) return;
@@ -200,13 +202,10 @@ export default function Cashier() {
                 <TableHead>Category</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead>Paid Amount</TableHead>
+                <TableHead>Total Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
-                <TableHead></TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -219,15 +218,10 @@ export default function Cashier() {
                     <Badge variant={transaction.type}>{transaction.type}</Badge>
                   </TableCell>
                   <TableCell>{formatDate(transaction.created_at)}</TableCell>
+                  <TableCell>${transaction.paid_amount.toFixed(2)}</TableCell>
                   <TableCell>${transaction.amount.toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        transaction.status === "paid"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
+                    <Badge variant={transaction.status === "paid" ? "default" : "secondary"}>
                       {transaction.status}
                     </Badge>
                   </TableCell>
@@ -284,14 +278,11 @@ export default function Cashier() {
                   <Select
                     defaultValue={newTransaction.type}
                     onValueChange={(value) =>
-                      setNewTransaction({
-                        ...newTransaction,
-                        type: value as TransactionType,
-                      })
+                      setNewTransaction((prev) => ({ ...prev, type: value as TransactionType }))
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Theme" />
+                      <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="income">Income</SelectItem>
@@ -302,31 +293,26 @@ export default function Cashier() {
                 <TableCell>{formatDate(new Date().toISOString())}</TableCell>
                 <TableCell>
                   <Input
+                    name="paid_amount"
+                    type="number"
+                    value={newTransaction.paid_amount}
+                    onChange={handleInputChange}
+                    placeholder="Paid Amount"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
                     name="amount"
                     type="number"
                     value={newTransaction.amount}
                     onChange={handleInputChange}
-                    placeholder="Amount"
+                    placeholder="Total Amount"
                   />
                 </TableCell>
                 <TableCell>
-                  <Select
-                    defaultValue={newTransaction.status}
-                    onValueChange={(value) =>
-                      setNewTransaction({
-                        ...newTransaction,
-                        status: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="unpaid">Unpaid</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Badge variant={computeStatus() === "paid" ? "default" : "secondary"}>
+                    {computeStatus()}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Button onClick={handleAddTransaction}>
@@ -350,59 +336,109 @@ export default function Cashier() {
         <DialogHeader>
           <DialogTitle>Edit Transaction</DialogTitle>
         </DialogHeader>
+
         {transactionToEdit && (
           <div className="space-y-4">
-            <Input
-              name="description"
-              value={transactionToEdit.description}
-              onChange={(e) =>
-                setTransactionToEdit({ ...transactionToEdit, description: e.target.value })
-              }
-              placeholder="Description"
-            />
-            <Input
-              name="category"
-              value={transactionToEdit.category}
-              onChange={(e) =>
-                setTransactionToEdit({ ...transactionToEdit, category: e.target.value })
-              }
-              placeholder="Category"
-            />
-            <Select
-              value={transactionToEdit.type}
-              onValueChange={(value) =>
-                setTransactionToEdit({ ...transactionToEdit, type: value as TransactionType })
-              }
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              value={transactionToEdit.amount}
-              onChange={(e) =>
-                setTransactionToEdit({
-                  ...transactionToEdit,
-                  amount: parseFloat(e.target.value),
-                })
-              }
-              placeholder="Amount"
-            />
-            <Select
-              value={transactionToEdit.status}
-              onValueChange={(value) =>
-                setTransactionToEdit({ ...transactionToEdit, status: value })
-              }
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium">
+                Description
+              </label>
+              <Input
+                id="description"
+                name="description"
+                value={transactionToEdit.description}
+                onChange={(e) =>
+                  setTransactionToEdit({ ...transactionToEdit, description: e.target.value })
+                }
+                placeholder="Description"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium">
+                Category
+              </label>
+              <Input
+                id="category"
+                name="category"
+                value={transactionToEdit.category}
+                onChange={(e) =>
+                  setTransactionToEdit({ ...transactionToEdit, category: e.target.value })
+                }
+                placeholder="Category"
+              />
+            </div>
+
+            {/* Type */}
+            <div>
+              <label htmlFor="type" className="block text-sm font-medium">
+                Type
+              </label>
+              <Select
+                value={transactionToEdit.type}
+                onValueChange={(value) =>
+                  setTransactionToEdit({ ...transactionToEdit, type: value as TransactionType })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Paid Amount */}
+            <div>
+              <label htmlFor="paid_amount" className="block text-sm font-medium">
+                Paid Amount
+              </label>
+              <Input
+                id="paid_amount"
+                name="paid_amount"
+                type="number"
+                value={transactionToEdit.paid_amount}
+                onChange={(e) =>
+                  setTransactionToEdit({
+                    ...transactionToEdit,
+                    paid_amount: parseFloat(e.target.value) || 0,
+                  })
+                }
+                placeholder="Paid Amount"
+              />
+            </div>
+
+            {/* Total Amount */}
+            <div>
+              <label htmlFor="amount" className="block text-sm font-medium">
+                Total Amount
+              </label>
+              <Input
+                id="amount"
+                name="amount"
+                type="number"
+                value={transactionToEdit.amount}
+                onChange={(e) =>
+                  setTransactionToEdit({
+                    ...transactionToEdit,
+                    amount: parseFloat(e.target.value) || 0,
+                  })
+                }
+                placeholder="Total Amount"
+              />
+            </div>
+
+            {/* Status (read-only) */}
+            <div>
+              <label className="block text-sm font-medium">Status</label>
+              <span className="inline-block mt-1 px-2 py-1 rounded bg-gray-100 text-sm">
+                {transactionToEdit.status}
+              </span>
+            </div>
 
             <DialogFooter>
               <Button
@@ -419,7 +455,7 @@ export default function Cashier() {
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
 
         <DialogContent>
           <DialogHeader>
