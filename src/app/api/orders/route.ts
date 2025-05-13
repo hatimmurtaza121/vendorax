@@ -30,16 +30,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = createClient()
+  const supabase = createClient();
 
   try {
     // ── Auth ───────────────────────────────────────────────
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // ── Payload ────────────────────────────────────────────
@@ -49,104 +49,112 @@ export async function POST(request: Request) {
       total_amount,
       type,
       paid_amount = 0,
-    } = await request.json()
+    } = await request.json();
 
     // ── 1) Create Order ────────────────────────────────────
     const { data: order, error: orderErr } = await supabase
-      .from('orders')
+      .from("orders")
       .insert({
-        accounts_id:  accountId,
+        accounts_id: accountId,
         total_amount,
         type,
-        status: 'pending',
-        user_uid:     user.id,
+        status: "pending",
+        user_uid: user.id,
       })
       .select()
-      .single()
+      .single();
     if (orderErr || !order) {
-      console.error('Order insert error', orderErr)
+      console.error("Order insert error", orderErr);
       return NextResponse.json(
-        { error: orderErr?.message || 'Order insert failed' },
+        { error: orderErr?.message || "Order insert failed" },
         { status: 500 }
-      )
+      );
     }
 
     // ── 2) Create Order Items ──────────────────────────────
     const { data: orderItems, error: itemsErr } = await supabase
-      .from('order_items')
+      .from("order_items")
       .insert(
         items.map((it: any) => ({
-          order_id:   order.id,
+          order_id: order.id,
           product_id: it.productId,
-          quantity:   it.quantity,
-          price:      it.price,
+          quantity: it.quantity,
+          price: it.price, // this is buyPrice for purchases
         }))
       )
-      .select()        // ← Crucial: without this, `data` will be null
+      .select();
     if (itemsErr || !orderItems) {
-      console.error('Order items insert error', itemsErr)
+      console.error("Order items insert error", itemsErr);
       return NextResponse.json(
-        { error: itemsErr?.message || 'Order items insert failed' },
+        { error: itemsErr?.message || "Order items insert failed" },
         { status: 500 }
-      )
+      );
     }
 
-    // ── 3) Adjust Stock & Log Movements ───────────────────
-    for (const it of orderItems) {
-      const { data: prod, error: prodErr } = await supabase
-        .from('products')
-        .select('in_stock')
-        .eq('id', it.product_id)
-        .single()
-      if (prodErr || prod === null) throw prodErr || new Error('Missing product')
+    // ── 3) Adjust Stock, Log Movements & Update Sell Price ─
+    for (const it of items) {
+      const { data: product, error: prodErr } = await supabase
+        .from("products")
+        .select("in_stock, price")
+        .eq("id", it.productId)
+        .single();
+      if (prodErr || !product) throw prodErr || new Error("Missing product");
 
       const newStock =
-        type === 'sale'
-          ? prod.in_stock - it.quantity
-          : prod.in_stock + it.quantity
+        type === "sale"
+          ? product.in_stock - it.quantity
+          : product.in_stock + it.quantity;
 
       await supabase
-        .from('products')
+        .from("products")
         .update({ in_stock: newStock })
-        .eq('id', it.product_id)
+        .eq("id", it.productId);
 
-      await supabase.from('stock_movements').insert({
-        product_id:   it.product_id,
-        type,                         // 'sale' or 'purchase'
+      // For purchase: update products.price if sellPrice differs
+      if (type === "purchase" && product.price !== it.sellPrice) {
+        await supabase
+          .from("products")
+          .update({ price: it.sellPrice })
+          .eq("id", it.productId);
+      }
+
+      await supabase.from("stock_movements").insert({
+        product_id: it.productId,
+        type, // 'sale' or 'purchase'
         reference_id: order.id,
-        description:  `${type} order ${order.id}`,
-        user_uid:     user.id,
-      })
+        description: `${type} order ${order.id}`,
+        user_uid: user.id,
+      });
     }
 
     // ── 4) Create Transaction ──────────────────────────────
     const { data: tx, error: txErr } = await supabase
-      .from('transactions')
+      .from("transactions")
       .insert({
-        order_id:    order.id,
-        amount:      total_amount,
+        order_id: order.id,
+        amount: total_amount,
         paid_amount,
-        user_uid:    user.id,
-        type:        type === 'sale' ? 'income' : 'expense',
-        category:    type === 'sale' ? 'selling' : 'purchase',
+        user_uid: user.id,
+        type: type === "sale" ? "income" : "expense",
+        category: type === "sale" ? "selling" : "purchase",
         description: `Transaction for order #${order.id}`,
       })
-      .select()
-      
+      .select();
+
     if (txErr || !tx) {
-      console.error('Transaction insert error', txErr)
+      console.error("Transaction insert error", txErr);
       return NextResponse.json(
-        { error: txErr?.message || 'Transaction insert failed' },
+        { error: txErr?.message || "Transaction insert failed" },
         { status: 500 }
-      )
+      );
     }
 
-    return NextResponse.json({ order, orderItems, transaction: tx })
+    return NextResponse.json({ order, orderItems, transaction: tx });
   } catch (err: any) {
-    console.error('Unexpected POST /api/orders error', err)
+    console.error("Unexpected POST /api/orders error", err);
     return NextResponse.json(
-      { error: err.message || 'Internal Server Error' },
+      { error: err.message || "Internal Server Error" },
       { status: 500 }
-    )
+    );
   }
 }

@@ -82,6 +82,7 @@ export default function OrdersPage() {
   const [nextPayment, setNextPayment] = useState<number | "">("");
   const [filters, setFilters] = useState({ status: "all" });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const router = useRouter();
 
@@ -122,7 +123,6 @@ export default function OrdersPage() {
   
   async function handleDeleteOrder() {
     if (!selectedOrder) return;
-    if (!confirm("Are you sure you want to delete this order?")) return;
 
     setIsDeleting(true);
     try {
@@ -131,16 +131,16 @@ export default function OrdersPage() {
       });
       if (!res.ok) throw new Error("Delete failed");
 
-      // Remove from local state
       setOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
       setIsDialogOpen(false);
+      setShowDeleteConfirm(false); // close the confirmation
     } catch (err) {
       console.error(err);
-      // show error toast if you have one
     } finally {
       setIsDeleting(false);
     }
   }
+
 
   const handleViewOrder = async (order: Order) => {
     setSelectedOrder(order);
@@ -386,11 +386,32 @@ export default function OrdersPage() {
             )}
             <LoadingButton
               variant="destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete Order
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete order #{selectedOrder?.id}? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setShowDeleteConfirm(false)} variant="outline">
+              Cancel
+            </Button>
+            <LoadingButton
+              variant="destructive"
               onClick={handleDeleteOrder}
               isLoading={isDeleting}
               loadingText="Deleting..."
             >
-              Delete Order
+              Confirm Delete
             </LoadingButton>
           </DialogFooter>
         </DialogContent>

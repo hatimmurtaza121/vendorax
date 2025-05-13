@@ -147,53 +147,89 @@ export async function DELETE(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const orderId = params.orderId;
 
-  // 1. delete all transactions for this order
+  // ── Step 1: Get order and its type ─────────────
+  const { data: order, error: orderErr } = await supabase
+    .from("orders")
+    .select("id, type")
+    .eq("id", orderId)
+    .single();
+
+  if (orderErr || !order) {
+    return NextResponse.json(
+      { error: orderErr?.message || "Order not found" },
+      { status: 500 }
+    );
+  }
+
+  // ── Step 2: Get related order items ───────────
+  const { data: items, error: itemsFetchErr } = await supabase
+    .from("order_items")
+    .select("product_id, quantity")
+    .eq("order_id", orderId);
+
+  if (itemsFetchErr || !items) {
+    return NextResponse.json(
+      { error: itemsFetchErr?.message || "Order items fetch failed" },
+      { status: 500 }
+    );
+  }
+
+  // ── Step 3: Reverse stock changes ─────────────
+  for (const item of items) {
+    const { data: prod, error: prodErr } = await supabase
+      .from("products")
+      .select("in_stock")
+      .eq("id", item.product_id)
+      .single();
+
+    if (!prod || prodErr) continue;
+
+    const updatedStock =
+      order.type === "purchase"
+        ? prod.in_stock - item.quantity // remove previously added stock
+        : prod.in_stock + item.quantity; // restore stock reduced during sale
+
+    await supabase
+      .from("products")
+      .update({ in_stock: updatedStock })
+      .eq("id", item.product_id);
+  }
+
+  // ── Step 4: Delete transactions ───────────────
   const { error: txnErr } = await supabase
     .from("transactions")
     .delete()
     .eq("order_id", orderId);
   if (txnErr) {
-    return NextResponse.json(
-      { error: txnErr.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: txnErr.message }, { status: 500 });
   }
 
-  // 2. delete all order_items for this order
+  // ── Step 5: Delete order items ────────────────
   const { error: itemsErr } = await supabase
     .from("order_items")
     .delete()
     .eq("order_id", orderId);
   if (itemsErr) {
-    return NextResponse.json(
-      { error: itemsErr.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: itemsErr.message }, { status: 500 });
   }
 
-  // 3. finally delete the order itself (only if it belongs to the current user)
-  const { error: orderErr } = await supabase
+  // ── Step 6: Delete the order itself ───────────
+  const { error: deleteErr } = await supabase
     .from("orders")
     .delete()
     .eq("id", orderId)
     .eq("user_uid", user.id);
-  if (orderErr) {
-    return NextResponse.json(
-      { error: orderErr.message },
-      { status: 500 }
-    );
+  if (deleteErr) {
+    return NextResponse.json({ error: deleteErr.message }, { status: 500 });
   }
 
   return NextResponse.json(
-    { message: "Order and all related records deleted." },
+    { message: "Order and related records deleted, stock reverted." },
     { status: 200 }
   );
 }
