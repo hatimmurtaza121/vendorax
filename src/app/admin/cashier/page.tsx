@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Card,
   CardHeader,
@@ -58,13 +59,14 @@ interface Transaction {
 
 export default function Cashier() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
-    useState(false);
-  const [transactionToDelete, setTransactionToDelete] =
-    useState<Transaction | null>(null);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [nextPayment, setNextPayment] = useState<number | "">("");
+  const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
     description: "",
     category: "",
@@ -133,16 +135,40 @@ export default function Cashier() {
 
   const handleEditTransaction = async () => {
     if (!transactionToEdit) return;
-  
+
+    const currentPaid = transactionToEdit.paid_amount;
+    const total = transactionToEdit.amount;
+    const left = total - currentPaid;
+    const payment = typeof nextPayment === "number" ? nextPayment : 0;
+
+    if (payment < 0) {
+      setNextPaymentError("Payment cannot be less than 0.");
+      return;
+    }
+    if (payment > left) {
+      setNextPaymentError(`Payment cannot exceed $${left.toFixed(2)}.`);
+      return;
+    }
+
+    const newPaid = currentPaid + payment;
+    const status =
+      newPaid >= total ? "paid" : newPaid <= 0 ? "unpaid" : "partial";
+    
+    setIsSaving(true);
+
     try {
       const response = await fetch(`/api/transactions/${transactionToEdit.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(transactionToEdit),
+        body: JSON.stringify({
+          ...transactionToEdit,
+          paid_amount: newPaid,
+          status,
+        }),
       });
-  
+
       if (response.ok) {
         const updated = await response.json();
         setTransactions((prev) =>
@@ -155,6 +181,8 @@ export default function Cashier() {
       }
     } catch (error) {
       console.error("Error updating transaction:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -234,6 +262,8 @@ export default function Cashier() {
                         className="hover:bg-gray-100 transition rounded-full"
                         onClick={() => {
                           setTransactionToEdit(transaction);
+                          setNextPayment("");
+                          setNextPaymentError(null);
                           setIsEditDialogOpen(true);
                         }}
                       >
@@ -330,132 +360,138 @@ export default function Cashier() {
         open={isDeleteConfirmationOpen}
         onOpenChange={setIsDeleteConfirmationOpen}
       >
-      
+
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Transaction</DialogTitle>
-        </DialogHeader>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+          </DialogHeader>
 
-        {transactionToEdit && (
-          <div className="space-y-4">
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium">
-                Description
-              </label>
-              <Input
-                id="description"
-                name="description"
-                value={transactionToEdit.description}
-                onChange={(e) =>
-                  setTransactionToEdit({ ...transactionToEdit, description: e.target.value })
-                }
-                placeholder="Description"
-              />
+          {transactionToEdit && (
+            <div className="space-y-4 text-m">
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block mb-1">
+                  Description
+                </label>
+                <Input
+                  id="description"
+                  name="description"
+                  value={transactionToEdit.description}
+                  onChange={(e) =>
+                    setTransactionToEdit({ ...transactionToEdit, description: e.target.value })
+                  }
+                  placeholder="Description"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label htmlFor="category" className="block mb-1">
+                  Category
+                </label>
+                <Input
+                  id="category"
+                  name="category"
+                  value={transactionToEdit.category}
+                  onChange={(e) =>
+                    setTransactionToEdit({ ...transactionToEdit, category: e.target.value })
+                  }
+                  placeholder="Category"
+                />
+              </div>
+
+              {/* Type */}
+              <div>
+                <label htmlFor="type" className="block mb-1">
+                  Type
+                </label>
+                <Select
+                  value={transactionToEdit.type}
+                  onValueChange={(value) =>
+                    setTransactionToEdit({ ...transactionToEdit, type: value as TransactionType })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status & Amount Left */}
+              
+              <p>
+                <strong>Payment Status: </strong>
+                <span>
+                  {transactionToEdit.status}
+                </span>
+              </p>
+              
+              <p>
+                <strong>Amount Left:</strong>{" "}
+                ${(transactionToEdit.amount - transactionToEdit.paid_amount).toFixed(2)}
+              </p>
+
+              {/* Next Payment (conditionally shown) */}
+              {transactionToEdit.status !== "paid" && (
+                <div>
+                  <label htmlFor="next_payment" className="block mb-1">
+                    Next Payment
+                  </label>
+                  <Input
+                    id="next_payment"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={nextPayment}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNextPayment(val === "" ? "" : parseFloat(val));
+                      setNextPaymentError(null);
+                    }}
+                    placeholder="Enter additional payment"
+                  />
+                  {nextPaymentError && (
+                    <p className="text-sm text-red-600 mt-1">{nextPaymentError}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Total Amount */}
+              <div>
+                <p>
+                  <strong>Total Amount:</strong>{" "}
+                  ${transactionToEdit.amount.toFixed(2)}
+                </p>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTransactionToEdit(null);
+                    setIsEditDialogOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <LoadingButton
+                  onClick={handleEditTransaction}
+                  isLoading={isSaving}
+                  loadingText="Saving..."
+                >
+                  Save Changes
+                </LoadingButton>
+              </DialogFooter>
             </div>
-
-            {/* Category */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium">
-                Category
-              </label>
-              <Input
-                id="category"
-                name="category"
-                value={transactionToEdit.category}
-                onChange={(e) =>
-                  setTransactionToEdit({ ...transactionToEdit, category: e.target.value })
-                }
-                placeholder="Category"
-              />
-            </div>
-
-            {/* Type */}
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium">
-                Type
-              </label>
-              <Select
-                value={transactionToEdit.type}
-                onValueChange={(value) =>
-                  setTransactionToEdit({ ...transactionToEdit, type: value as TransactionType })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Paid Amount */}
-            <div>
-              <label htmlFor="paid_amount" className="block text-sm font-medium">
-                Paid Amount
-              </label>
-              <Input
-                id="paid_amount"
-                name="paid_amount"
-                type="number"
-                value={transactionToEdit.paid_amount}
-                onChange={(e) =>
-                  setTransactionToEdit({
-                    ...transactionToEdit,
-                    paid_amount: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="Paid Amount"
-              />
-            </div>
-
-            {/* Total Amount */}
-            <div>
-              <label htmlFor="amount" className="block text-sm font-medium">
-                Total Amount
-              </label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                value={transactionToEdit.amount}
-                onChange={(e) =>
-                  setTransactionToEdit({
-                    ...transactionToEdit,
-                    amount: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="Total Amount"
-              />
-            </div>
-
-            {/* Status (read-only) */}
-            <div>
-              <label className="block text-sm font-medium">Status</label>
-              <span className="inline-block mt-1 px-2 py-1 rounded bg-gray-100 text-sm">
-                {transactionToEdit.status}
-              </span>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTransactionToEdit(null);
-                  setIsEditDialogOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleEditTransaction}>Update</Button>
-            </DialogFooter>
-          </div>
-        )}
-      </DialogContent>
+          )}
+        </DialogContent>
       </Dialog>
+
 
         <DialogContent>
           <DialogHeader>

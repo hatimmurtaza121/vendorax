@@ -60,6 +60,24 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleAddDemoData = async () => {
+    const confirmed = confirm("Generate realistic demo data for your account?");
+    if (!confirmed) return;
+
+    const res = await fetch("/api/demo/generate", { method: "POST" });
+    const data = await res.json();
+    alert(data.message || data.error);
+  };
+
+  const handleDeleteDemoData = async () => {
+    const confirmed = confirm("This will delete all your demo data. Continue?");
+    if (!confirmed) return;
+
+    const res = await fetch("/api/demo/delete", { method: "DELETE" });
+    const data = await res.json();
+    alert(data.message || data.error);
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4">
@@ -114,9 +132,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            
             <DropdownMenuSeparator />
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
+
+            {/* <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleAddDemoData}>Add Demo Data</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDeleteDemoData}>Delete Demo Data</DropdownMenuItem> */}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>

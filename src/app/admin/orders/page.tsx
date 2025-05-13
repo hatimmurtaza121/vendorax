@@ -83,6 +83,7 @@ export default function OrdersPage() {
   const [filters, setFilters] = useState({ status: "all" });
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -158,6 +159,22 @@ export default function OrdersPage() {
   
   const handleUpdateOrder = async () => {
     if (!selectedOrder) return;
+    const paid = selectedOrder.transactions?.[0]?.paid_amount || 0;
+    const total = selectedOrder.total_amount;
+    const amountLeft = total - paid;
+
+    const payment = typeof nextPayment === "number" ? nextPayment : 0;
+
+    if (payment < 0) {
+      setNextPaymentError("Payment cannot be less than 0.");
+      return;
+    }
+    if (payment > amountLeft) {
+      setNextPaymentError(`Payment cannot exceed $${amountLeft.toFixed(2)}.`);
+      return;
+    }
+
+    setNextPaymentError(null);
     setIsSaving(true);
     try {
       // compute new paid amount
@@ -297,11 +314,11 @@ export default function OrdersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Order #{selectedOrder?.id} Details</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 text-m">
             <p><strong>Account:</strong> {selectedOrder?.accounts.name}</p>
             {/* Order Status */}
             <div className="flex items-center gap-2">
-              <span className="block text-sm font-medium">Order Status</span>
+              <span className="block">Order Status</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="capitalize">
@@ -345,14 +362,26 @@ export default function OrdersPage() {
             <p><strong>Payment Status:</strong> {selectedOrder?.transactions?.[0]?.status}</p>
             <p><strong>Amount Left:</strong> ${( (selectedOrder?.total_amount||0) - (selectedOrder?.transactions?.[0]?.paid_amount||0) ).toFixed(2)}</p>
             {['unpaid','partial'].includes(selectedOrder?.transactions?.[0]?.status||'') && (
-            <div>
-              <label htmlFor="next_payment" className="block text-sm font-medium mb-1">Next Payment</label>
-              <Input id="next_payment" type="number" min={0} step={0.01}
-                value={nextPayment}
-                onChange={e=>{
-                  const v=e.target.value; setNextPayment(v===''? '': parseFloat(v));
-                }} placeholder="Enter additional payment"/>
-            </div>)}
+              <div>
+                <label htmlFor="next_payment" className="block mb-1">Next Payment</label>
+                <Input
+                  id="next_payment"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={nextPayment}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setNextPayment(v === '' ? '' : parseFloat(v));
+                    setNextPaymentError(null); // clear as user types
+                  }}
+                  placeholder="Enter additional payment"
+                />
+                {nextPaymentError && (
+                  <p className="text-sm text-red-600 mt-1">{nextPaymentError}</p>
+                )}
+              </div>
+            )}
             <p><strong>Total:</strong> ${selectedOrder?.total_amount.toFixed(2)}</p>
             <p><strong>Created:</strong> {selectedOrder?.created_at ? formatDate(selectedOrder.created_at):'—'}</p>
           </div>
