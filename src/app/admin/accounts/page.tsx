@@ -494,7 +494,7 @@ const [newAccountType, setnewAccountType] = useState<"customer" | "supplier">("c
         open={isDeleteConfirmationOpen}
         onOpenChange={(open) => setIsDeleteConfirmationOpen(open)}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
           </DialogHeader>
@@ -525,7 +525,7 @@ const [newAccountType, setnewAccountType] = useState<"customer" | "supplier">("c
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>
               {shownewAccountDialog ? "Create New Account" : "Edit Account"}

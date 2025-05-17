@@ -150,8 +150,10 @@ export default function SalesPage() {
       setIsCreating(false);
       return;
     }
-  
-    if (paidAmount == "" || (paidAmount < 0 || paidAmount > total)) {
+    
+    if (paidAmount === "" || paidAmount < 0 || paidAmount > total) {
+      console.log("paidAmount =", paidAmount, typeof paidAmount);
+      console.log("total =", total, typeof total);
       setErrorMessage("Paid amount must be between 0 and total.");
       setIsCreating(false);
       return;

@@ -14,6 +14,7 @@ import {
   SearchIcon,
   EyeIcon,
   FilterIcon,
+  DownloadIcon,
 } from "lucide-react";
 import {
   Table,
@@ -43,6 +44,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { LoadingButton } from "@/components/ui/loading-button";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Account {
   id: number;
@@ -69,6 +72,181 @@ type Order = {
   transactions?: { status: "paid" | "unpaid" | "partial"; paid_amount: number }[];
 };
 
+function generateInvoicePDF({
+  company,
+  order,
+  items,
+}: {
+  company: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    logo_url?: string;
+  };
+  order: Order;
+  items: (OrderItem & { description: string; unit: string })[];
+}) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const padding = 14;
+  let y = padding;
+
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(v);
+
+  const total = order.total_amount;
+  const paid = order.transactions?.[0]?.paid_amount || 0;
+  const due = total - paid;
+  const paymentStatus = order.transactions?.[0]?.status || "unpaid";
+
+  const renderDetails = () => {
+    // Top-right company info
+    doc.setFont("times", "normal");
+    doc.setFontSize(10);
+    const infoLines = [
+      company.name,
+      company.address,
+      company.phone,
+      company.email,
+    ];
+    infoLines.forEach((line, i) => {
+      doc.text(line, pageWidth - padding, padding + i * 5, { align: "right" });
+    });
+
+    // "Invoice" title below logo
+    doc.setFont("times", "bold");
+    doc.setFontSize(30);
+    doc.text("Invoice", padding, y + 12);
+    y += 22;
+
+    // BILL TO
+    doc.setFontSize(11);
+    doc.setFont("times", "bold");
+    doc.text("BILL TO:", padding, y);
+    doc.setFont("times", "normal");
+    doc.text(order.accounts.name || "Walk In Customer", padding, y + 5);
+    y += 12;
+
+    // Invoice meta info
+    const metaLeftX = pageWidth - 70;
+    const metaRightX = pageWidth - padding;
+
+    doc.setFontSize(10);
+    doc.setFont("times", "bold");
+    doc.text("INVOICE #", metaLeftX, y);
+    doc.setFont("times", "normal");
+    doc.text(order.id.toString(), metaRightX, y, { align: "right" });
+
+    doc.setFont("times", "bold");
+    doc.text("DATE", metaLeftX, y + 5);
+    doc.setFont("times", "normal");
+    doc.text(
+      new Date(order.created_at).toLocaleDateString(),
+      metaRightX,
+      y + 5,
+      { align: "right" }
+    );
+
+    doc.setFont("times", "bold");
+    doc.text("STATUS", metaLeftX, y + 10);
+    doc.setFont("times", "normal");
+    doc.text(paymentStatus.toUpperCase(), metaRightX, y + 10, {
+      align: "right",
+    });
+
+    y += 25;
+
+    // Table
+    autoTable(doc, {
+      startY: y,
+      head: [["Product", "Description", "Quantity", "Unit", "Price", "Amount"]],
+      body: items.map((item) => {
+        const amount = (item.quantity ?? 0) * (item.price ?? 0);
+        const desc = item.description ?? "-";
+
+        return [
+          item.product?.name ?? "-",
+          desc.length > 20 ? desc.slice(0, 20) + "…" : desc,
+          item.quantity?.toString() ?? "0",
+          item.unit ?? "pcs",
+          formatCurrency(item.price ?? 0),
+          formatCurrency(amount),
+        ];
+      }),
+      styles: {
+        font: "times",
+        fontSize: 11,
+        cellPadding: 3,
+        lineWidth: 0, // no borders
+      },
+      headStyles: {
+        fillColor: [45, 45, 45],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      theme: "plain",
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY || y + 10;
+    y = finalY + 10;
+
+    // Totals - aligned labels and values
+    const labelX = pageWidth - 60;
+    const valueX = pageWidth - padding;
+
+    doc.setFont("times", "bold");
+    doc.setFontSize(12);
+    doc.text("TOTAL:", labelX, y);
+    doc.text(formatCurrency(total), valueX, y, { align: "right" });
+
+    doc.setFont("times", "normal");
+    doc.text("Paid Amount:", labelX, y + 7);
+    doc.text(formatCurrency(paid), valueX, y + 7, { align: "right" });
+
+    doc.text("Amount Due:", labelX, y + 14);
+    doc.text(formatCurrency(due), valueX, y + 14, { align: "right" });
+
+    // Footer
+    doc.setFont("times", "italic");
+    doc.setFontSize(10);
+    doc.setTextColor(130, 130, 130);
+    doc.text(
+      "Thank you for your business!",
+      pageWidth / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: "center" }
+    );
+    doc.setTextColor(0, 0, 0); // reset
+  };
+
+  // Load logo first, then render
+  if (company.logo_url) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = company.logo_url;
+    img.onload = () => {
+      doc.addImage(img, "PNG", padding, y, 40, 20); // fixed height
+      y += 22;
+      renderDetails();
+      doc.save(`invoice_order_${order.id}.pdf`);
+    };
+    img.onerror = () => {
+      renderDetails();
+      doc.save(`invoice_order_${order.id}.pdf`);
+    };
+  } else {
+    renderDetails();
+    doc.save(`invoice_order_${order.id}.pdf`);
+  }
+}
+
+
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -84,26 +262,42 @@ export default function OrdersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
-
+  const [company, setCompany] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    logo_url: ""
+  });
   const router = useRouter();
 
   useEffect(() => {
     async function fetchAll() {
-      try {
-        const [ordersRes, accountsRes] = await Promise.all([
-          fetch("/api/orders"),
-          fetch("/api/accounts"),
-        ]);
-        const ordersData = await ordersRes.json();
-        const accountsData = await accountsRes.json();
-        setOrders(ordersData);
-        setAccounts(accountsData);
-      } catch {
-        setError("Error loading data");
-      } finally {
-        setLoading(false);
+    try {
+      const [ordersRes, accountsRes, companyRes] = await Promise.all([
+        fetch("/api/orders"),
+        fetch("/api/accounts"),
+        fetch("/api/settings")
+      ]);
+
+      const [ordersData, accountsData] = await Promise.all([
+        ordersRes.json(),
+        accountsRes.json()
+      ]);
+
+      setOrders(ordersData);
+      setAccounts(accountsData);
+
+      if (companyRes.ok) {
+        const companyData = await companyRes.json();
+        setCompany(companyData);
       }
+    } catch {
+      setError("Error loading data");
+    } finally {
+      setLoading(false);
     }
+  }
     fetchAll();
   }, []);
 
@@ -156,6 +350,35 @@ export default function OrdersPage() {
       console.error(err);
     }
   };
+
+  const handleDownloadInvoice = async (order: Order) => {
+    try {
+      const res = await fetch(`/api/orders/${order.id}/items`);
+      const items = await res.json();
+
+      const productIds = items.map((i: { product_id: any }) => i.product_id);
+      const res2 = await fetch(`/api/products?ids=${productIds.join(",")}`);
+      const products = await res2.json();
+
+      const enrichedItems = items.map((item: { product_id: any }) => {
+        const match = products.find((p: { id: any }) => p.id === item.product_id);
+        return {
+          ...item,
+          description: match?.description || "—",
+          unit: match?.unit || "pcs"
+        };
+      });
+
+      generateInvoicePDF({
+        company,
+        order,
+        items: enrichedItems, // now includes description + unit
+      });
+    } catch (err) {
+      console.error("Failed to generate invoice:", err);
+    }
+  };
+
   
   const handleUpdateOrder = async () => {
     if (!selectedOrder) return;
@@ -190,6 +413,14 @@ export default function OrdersPage() {
         }),
       });
       if (!res.ok) throw await res.json();
+
+      const newStatus =
+        newPaid >= selectedOrder.total_amount
+          ? "paid"
+          : newPaid === 0
+          ? "unpaid"
+          : "partial";
+          
       // update local state
       setOrders(prev =>
         prev.map(o =>
@@ -197,7 +428,7 @@ export default function OrdersPage() {
             ? {
                 ...o,
                 status: selectedOrder.status,
-                transactions: [{ ...o.transactions![0], paid_amount: newPaid }]
+                transactions: [{ ...o.transactions![0], paid_amount: newPaid, status: newStatus }]
               }
             : o
         )
@@ -207,7 +438,7 @@ export default function OrdersPage() {
           ? {
               ...o,
               status: selectedOrder.status,
-              transactions: [{ ...o.transactions![0], paid_amount: newPaid }]
+              transactions: [{ ...o.transactions![0], paid_amount: newPaid, status: newStatus }]
             }
           : o
       );
@@ -301,6 +532,14 @@ export default function OrdersPage() {
                       <Button size="icon" variant="ghost" className="hover:bg-blue-100 transition rounded-full" onClick={()=>handleViewOrder(o)}>
                         <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition"/>
                       </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="hover:bg-green-100 ml-1 transition rounded-full"
+                        onClick={() => handleDownloadInvoice(o)}
+                      >
+                        <DownloadIcon className="w-5 h-5 text-green-600 hover:text-green-800 transition" />
+                      </Button>
                     </TableCell>
                   </TableRow>);
                 })}
@@ -312,7 +551,7 @@ export default function OrdersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader><DialogTitle>Order #{selectedOrder?.id} Details</DialogTitle></DialogHeader>
           <div className="space-y-4 text-m">
             <p><strong>Account:</strong> {selectedOrder?.accounts.name}</p>
@@ -423,7 +662,7 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
           </DialogHeader>

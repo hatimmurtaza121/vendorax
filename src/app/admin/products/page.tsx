@@ -30,7 +30,6 @@ import {
   FilterIcon,
   FilePenIcon,
   TrashIcon,
-  EyeIcon,
   PlusCircle,
   LoaderIcon,
   Loader2Icon,
@@ -111,7 +110,7 @@ export default function Products() {
       setErrorMessage("Product name and category are required.");
       return;
     }
-    setErrorMessage(""); // clear if valid
+    setErrorMessage("");
     try {
       const newProduct = {
         name: productName,
@@ -119,6 +118,7 @@ export default function Products() {
         price: productPrice,
         in_stock: productInStock,
         category: productCategory,
+        unit: unit === "other" ? customUnit : unit,
       };
       const response = await fetch("/api/products", {
         method: "POST",
@@ -151,7 +151,9 @@ export default function Products() {
         price: productPrice,
         in_stock: productInStock,
         category: productCategory,
+        unit: unit === "other" ? customUnit : unit,
       };
+
       const response = await fetch(`/api/products/${selectedProductId}`, {
         method: "PUT",
         headers: {
@@ -163,7 +165,9 @@ export default function Products() {
       if (response.ok) {
         const updatedProductFromServer = await response.json();
         setProducts(
-          products.map((p) => (p.id === updatedProductFromServer.id ? updatedProductFromServer : p))
+          products.map((p) =>
+            p.id === updatedProductFromServer.id ? updatedProductFromServer : p
+          )
         );
         setIsEditProductDialogOpen(false);
         resetSelectedProduct();
@@ -173,7 +177,7 @@ export default function Products() {
     } catch (error) {
       console.error("Error updating product:", error);
     }
-  }, [selectedProductId, productName, productDescription, productPrice, productInStock, productCategory, products]);
+  }, [selectedProductId, productName, productDescription, productPrice, productInStock, productCategory, unit, customUnit, products,]);
 
   const handleDeleteProduct = useCallback(async () => {
     if (!productToDelete || !productToDelete.id) {
@@ -392,6 +396,9 @@ export default function Products() {
                             setProductPrice(product.price);
                             setProductInStock(product.in_stock);
                             setProductCategory(product.category);
+                            const defaultUnits = ["pcs", "kg", "g", "ft"];
+                            setUnit(defaultUnits.includes(product.unit) ? product.unit : "other");
+                            setCustomUnit(!defaultUnits.includes(product.unit) ? product.unit : "");
                             setIsEditProductDialogOpen(true);
                           }}
                         >
@@ -430,7 +437,7 @@ export default function Products() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>
               {isAddProductDialogOpen ? "Add New Product" : "Edit Product"}
@@ -540,6 +547,7 @@ export default function Products() {
                   isAddProductDialogOpen ? handleAddProduct : handleEditProduct
                 }
               >
+                <PlusCircle className="w-4 h-4 mr-2" />
                 {isAddProductDialogOpen ? "Add Product" : "Update Product"}
               </Button>
             </div>
@@ -555,7 +563,7 @@ export default function Products() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>

@@ -134,7 +134,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/settings">Settings</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
 
             {/* <DropdownMenuSeparator />

@@ -67,6 +67,7 @@ export default function Cashier() {
   const [nextPayment, setNextPayment] = useState<number | "">("");
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
     description: "",
     category: "",
@@ -90,10 +91,15 @@ export default function Cashier() {
   };
 
   const handleAddTransaction = async () => {
+    if (!newTransaction.description || newTransaction.description.trim() === "") {
+      setFormError("Description is required.");
+      return;
+    }
+
+    setFormError(null);
+    
     try {
-      const payload = {
-        ...newTransaction,
-      };
+      const payload = { ...newTransaction };
       const response = await fetch("/api/transactions", {
         method: "POST",
         headers: {
@@ -113,6 +119,7 @@ export default function Cashier() {
       console.error("Error adding transaction:", error);
     }
   };
+
 
   const handleDeleteTransaction = useCallback(async () => {
     if (!transactionToDelete) return;
@@ -353,6 +360,11 @@ export default function Cashier() {
               </TableRow>
             </TableBody>
           </Table>
+          {formError && (
+            <div className="mt-4 text-red-600 font-medium border border-red-400 bg-red-100 p-2 rounded">
+              {formError}
+            </div>
+          )}
         </CardContent>
         {/* Remove card footer */}
       </Card>
@@ -362,7 +374,7 @@ export default function Cashier() {
       >
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>Edit Transaction</DialogTitle>
           </DialogHeader>
@@ -493,7 +505,7 @@ export default function Cashier() {
       </Dialog>
 
 
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>

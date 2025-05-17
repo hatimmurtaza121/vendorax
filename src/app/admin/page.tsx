@@ -5,8 +5,6 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   ChartTooltipContent,
@@ -27,62 +25,26 @@ import {
 } from "recharts";
 
 export default function Page() {
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [totalProfit, setTotalProfit] = useState(0);
-  const [cashFlow, setCashFlow] = useState<{ date: string; amount: unknown }[]>([]);
-  const [revenueByCategory, setRevenueByCategory] = useState({});
-  const [expensesByCategory, setExpensesByCategory] = useState({});
-  const [profitMargin, setProfitMargin] = useState([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSummary = async () => {
       try {
-        const [
-          revenueRes,
-          expensesRes,
-          profitRes,
-          cashFlowRes,
-          revenueByCategoryRes,
-          expensesByCategoryRes,
-          profitMarginRes
-        ] = await Promise.all([
-          fetch('/api/admin/revenue/total'),
-          fetch('/api/admin/expenses/total'),
-          fetch('/api/admin/profit/total'),
-          fetch('/api/admin/cashflow'),
-          fetch('/api/admin/revenue/category'),
-          fetch('/api/admin/expenses/category'),
-          fetch('/api/admin/profit/margin')
-        ]);
-
-        const revenue = await revenueRes.json();
-        const expenses = await expensesRes.json();
-        const profit = await profitRes.json();
-        const cashFlowData = await cashFlowRes.json();
-        const revenueByCategoryData = await revenueByCategoryRes.json();
-        const expensesByCategoryData = await expensesByCategoryRes.json();
-        const profitMarginData = await profitMarginRes.json();
-
-        setTotalRevenue(revenue.totalRevenue);
-        setTotalExpenses(expenses.totalExpenses);
-        setTotalProfit(profit.totalProfit);
-        setCashFlow(Object.entries(cashFlowData.cashFlow).map(([date, amount]) => ({ date, amount })));
-        setRevenueByCategory(revenueByCategoryData.revenueByCategory);
-        setExpensesByCategory(expensesByCategoryData.expensesByCategory);
-        setProfitMargin(profitMarginData.profitMargin);
+        const res = await fetch('/api/admin/summary');
+        const data = await res.json();
+        setSummary(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching summary:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchSummary();
   }, []);
 
-  if (loading) {
+  if (loading || !summary) {
     return (
       <div className="h-[80vh] flex items-center justify-center">
         <Loader2Icon className="mx-auto h-12 w-12 animate-spin" />
@@ -91,83 +53,138 @@ export default function Page() {
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4">
-      <div className="grid auto-rows-max items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Expenses
-            </CardTitle>
-            <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-            <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalProfit.toFixed(2)}</div>
-          </CardContent>
-        </Card>
+    <div className="flex flex-col gap-10">
+      {/* Financial Summary Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Financial Summary</h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Card>
+            <CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.totalRevenue || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Total Expenses</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.totalExpenses || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Total Profit</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.totalProfit || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Sales This Month</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.salesThisMonth || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
+          <Card>
+            <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.creditToCollect || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${Number(summary.debitToPay || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Revenue by Category
-            </CardTitle>
-            <PieChartIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <PiechartcustomChart data={revenueByCategory} className="aspect-auto" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Expenses by Category
-            </CardTitle>
-            <PieChartIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <PiechartcustomChart data={expensesByCategory} className="aspect-auto" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Profit Margin (selling)</CardTitle>
-            <BarChartIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <BarchartChart data={profitMargin} className="aspect-auto" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Cash Flow</CardTitle>
-            <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <LinechartChart data={cashFlow} className="aspect-auto" />
-          </CardContent>
-        </Card>
+
+      {/* Inventory Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Inventory Status</h2>
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-3">
+          <Card>
+            <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.totalInventory}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Low Stock (&lt;5)</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.lowStockItems}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Out of Stock Items</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.outOfStockItems}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Orders Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Orders</h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Card>
+            <CardHeader><CardTitle>Pending Orders</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.ordersPending}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Trends</h2>
+        {/* Graphs second row */}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Revenue by Category</CardTitle>
+              <PieChartIcon className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <PiechartcustomChart data={summary.revenueByCategory} className="aspect-auto" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Expenses by Category</CardTitle>
+              <PieChartIcon className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <PiechartcustomChart data={summary.expensesByCategory} className="aspect-auto" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Profit Margin (selling)</CardTitle>
+              <BarChartIcon className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <BarchartChart data={summary.profitMargin} className="aspect-auto" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Cash Flow</CardTitle>
+              <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <LinechartChart data={summary.cashFlow} className="aspect-auto" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
+
 }
+
 
 function BarChartIcon(props: any) {
   return (
@@ -304,40 +321,40 @@ function PieChartIcon(props: any) {
   );
 }
 
-function PiechartcustomChart({ data, ...props }: { data: Record<string, number> } & React.HTMLAttributes<HTMLDivElement>) {
-  const chartData = Object.entries(data).map(([category, value]) => ({
-    category,
-    value,
-    fill: `var(--color-${category})`,
-  }));
 
-  const chartConfig = Object.fromEntries(
-    Object.keys(data).map((category, index) => [
-      category,
-      {
-        label: category,
-        color: `hsl(var(--chart-${index + 1}))`,
-      },
-    ])
-  ) as ChartConfig;
+function PiechartcustomChart({ data = {}, ...props }: { data?: Record<string, number> } & React.HTMLAttributes<HTMLDivElement>) {
+  const isValidData = data && typeof data === 'object' && !Array.isArray(data);
+
+  const chartData = isValidData
+    ? Object.entries(data).map(([category, value]) => ({
+        category,
+        value,
+        fill: `var(--color-${category})`,
+      }))
+    : [];
+
+  const chartConfig = isValidData
+    ? Object.fromEntries(
+        Object.keys(data).map((category, index) => [
+          category,
+          {
+            label: category,
+            color: `hsl(var(--chart-${index + 1}))`,
+          },
+        ])
+      )
+    : {};
 
   return (
     <div {...props}>
       <ChartContainer config={chartConfig}>
         <PieChart>
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent hideLabel />}
-          />
-          <Pie
-            data={chartData}
-            dataKey="value"
-            nameKey="category"
-            outerRadius={80}
-          />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+          <Pie data={chartData} dataKey="value" nameKey="category" outerRadius={80} />
         </PieChart>
       </ChartContainer>
     </div>
   );
 }
+
 
