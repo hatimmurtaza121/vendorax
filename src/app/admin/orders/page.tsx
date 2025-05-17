@@ -93,9 +93,9 @@ function generateInvoicePDF({
   let y = padding;
 
   const formatCurrency = (v: number) =>
-    new Intl.NumberFormat("en-US", {
+    new Intl.NumberFormat("en-PK", {
       style: "currency",
-      currency: "USD",
+      currency: "PKR",
       minimumFractionDigits: 2,
     }).format(v);
 
@@ -198,18 +198,17 @@ function generateInvoicePDF({
     // Totals - aligned labels and values
     const labelX = pageWidth - 60;
     const valueX = pageWidth - padding;
+    const labelFontSize = 12;
+    const lineHeight = 10; // reduced from 14 to tighten spacing
 
     doc.setFont("times", "bold");
-    doc.setFontSize(12);
-    doc.text("TOTAL:", labelX, y);
-    doc.text(formatCurrency(total), valueX, y, { align: "right" });
+    doc.setFontSize(labelFontSize);
+    doc.text(`TOTAL: ${formatCurrency(total)}`, valueX, y, { align: "right" });
 
     doc.setFont("times", "normal");
-    doc.text("Paid Amount:", labelX, y + 7);
-    doc.text(formatCurrency(paid), valueX, y + 7, { align: "right" });
+    doc.text(`Paid Amount: ${formatCurrency(paid)}`, valueX, y + lineHeight, { align: "right" });
+    doc.text(`Amount Due: ${formatCurrency(due)}`, valueX, y + lineHeight * 2, { align: "right" });
 
-    doc.text("Amount Due:", labelX, y + 14);
-    doc.text(formatCurrency(due), valueX, y + 14, { align: "right" });
 
     // Footer
     doc.setFont("times", "italic");
@@ -393,7 +392,7 @@ export default function OrdersPage() {
       return;
     }
     if (payment > amountLeft) {
-      setNextPaymentError(`Payment cannot exceed $${amountLeft.toFixed(2)}.`);
+      setNextPaymentError(`Payment cannot exceed Rs ${amountLeft.toFixed(2)}.`);
       return;
     }
 
@@ -522,8 +521,8 @@ export default function OrdersPage() {
                   <TableRow key={o.id}>
                     <TableCell>{o.id}</TableCell>
                     <TableCell>{o.accounts.name}</TableCell>
-                    <TableCell>${o.total_amount.toFixed(2)}</TableCell>
-                    <TableCell>${left.toFixed(2)}</TableCell>
+                    <TableCell>Rs {o.total_amount.toFixed(2)}</TableCell>
+                    <TableCell>Rs {left.toFixed(2)}</TableCell>
                     <TableCell className="capitalize">{o.status}</TableCell>
                     <TableCell>{o.transactions?.[0]?.status}</TableCell>
                     <TableCell>{o.type}</TableCell>
@@ -599,7 +598,7 @@ export default function OrdersPage() {
             </div>
 
             <p><strong>Payment Status:</strong> {selectedOrder?.transactions?.[0]?.status}</p>
-            <p><strong>Amount Left:</strong> ${( (selectedOrder?.total_amount||0) - (selectedOrder?.transactions?.[0]?.paid_amount||0) ).toFixed(2)}</p>
+            <p><strong>Amount Left:</strong> Rs {( (selectedOrder?.total_amount||0) - (selectedOrder?.transactions?.[0]?.paid_amount||0) ).toFixed(2)}</p>
             {['unpaid','partial'].includes(selectedOrder?.transactions?.[0]?.status||'') && (
               <div>
                 <label htmlFor="next_payment" className="block mb-1">Next Payment</label>
@@ -621,7 +620,7 @@ export default function OrdersPage() {
                 )}
               </div>
             )}
-            <p><strong>Total:</strong> ${selectedOrder?.total_amount.toFixed(2)}</p>
+            <p><strong>Total:</strong> Rs {selectedOrder?.total_amount.toFixed(2)}</p>
             <p><strong>Created:</strong> {selectedOrder?.created_at ? formatDate(selectedOrder.created_at):'—'}</p>
           </div>
           <div className="mt-4">
@@ -635,7 +634,7 @@ export default function OrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orderItems.map(item=><TableRow key={item.id}><TableCell>{item.product.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>${item.price.toFixed(2)}</TableCell></TableRow>)}
+                {orderItems.map(item=><TableRow key={item.id}><TableCell>{item.product.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>Rs {item.price.toFixed(2)}</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </div>

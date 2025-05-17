@@ -153,7 +153,7 @@ export default function Cashier() {
       return;
     }
     if (payment > left) {
-      setNextPaymentError(`Payment cannot exceed $${left.toFixed(2)}.`);
+      setNextPaymentError(`Payment cannot exceed Rs ${left.toFixed(2)}.`);
       return;
     }
 
@@ -253,8 +253,8 @@ export default function Cashier() {
                     <Badge variant={transaction.type}>{transaction.type}</Badge>
                   </TableCell>
                   <TableCell>{formatDate(transaction.created_at)}</TableCell>
-                  <TableCell>${transaction.paid_amount.toFixed(2)}</TableCell>
-                  <TableCell>${transaction.amount.toFixed(2)}</TableCell>
+                  <TableCell>Rs {transaction.paid_amount.toFixed(2)}</TableCell>
+                  <TableCell>Rs {transaction.amount.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={transaction.status === "paid" ? "default" : "secondary"}>
                       {transaction.status}
@@ -445,7 +445,7 @@ export default function Cashier() {
               
               <p>
                 <strong>Amount Left:</strong>{" "}
-                ${(transactionToEdit.amount - transactionToEdit.paid_amount).toFixed(2)}
+                Rs {(transactionToEdit.amount - transactionToEdit.paid_amount).toFixed(2)}
               </p>
 
               {/* Next Payment (conditionally shown) */}
@@ -477,7 +477,7 @@ export default function Cashier() {
               <div>
                 <p>
                   <strong>Total Amount:</strong>{" "}
-                  ${transactionToEdit.amount.toFixed(2)}
+                  Rs {transactionToEdit.amount.toFixed(2)}
                 </p>
               </div>
 

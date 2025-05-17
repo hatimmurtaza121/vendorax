@@ -296,7 +296,7 @@ export default function SalesPage() {
                   </TableCell>
                   <TableCell>{product.unit || "-"}</TableCell>
                   <TableCell>{product.in_stock ?? "-"}</TableCell>
-                  <TableCell>${((product.quantity || 1) * product.price).toFixed(2)}</TableCell>
+                  <TableCell>Rs {((product.quantity || 1) * product.price).toFixed(2)}</TableCell>
                   <TableCell>
                     <Button
                       variant="destructive"
@@ -321,7 +321,7 @@ export default function SalesPage() {
             </TableBody>
           </Table>
           <div className="mt-4 text-right">
-            <strong>Total: ${total.toFixed(2)}</strong>
+            <strong>Total: Rs {total.toFixed(2)}</strong>
           </div>
           {errorMessage && (
             <div className="mt-4 text-red-600 font-medium border border-red-400 bg-red-100 p-2 rounded">

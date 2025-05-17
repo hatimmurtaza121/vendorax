@@ -61,25 +61,25 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.totalRevenue || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.totalRevenue || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Total Expenses</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.totalExpenses || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.totalExpenses || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Total Profit</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.totalProfit || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.totalProfit || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Sales This Month</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.salesThisMonth || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.salesThisMonth || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
@@ -87,13 +87,13 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.creditToCollect || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.creditToCollect || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${Number(summary.debitToPay || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.debitToPay || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
@@ -106,7 +106,7 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalInventory}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.totalInventory || 0).toFixed(2)}</div>
             </CardContent>
           </Card>
           <Card>

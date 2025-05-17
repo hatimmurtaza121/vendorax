@@ -291,7 +291,7 @@ export default function PurchasePage() {
                   </TableCell>
                   <TableCell>{product.unit || "-"}</TableCell>
                   <TableCell>{product.in_stock ?? "-"}</TableCell>
-                  <TableCell>Rs. {(product.quantity * product.buyPrice).toFixed(2)}</TableCell>
+                  <TableCell>Rs {(product.quantity * product.buyPrice).toFixed(2)}</TableCell>
                   <TableCell>
                     <Button
                       variant="destructive"
@@ -306,7 +306,7 @@ export default function PurchasePage() {
             </TableBody>
           </Table>
           <div className="mt-4 text-right">
-            <strong>Total: Rs. {total.toFixed(2)}</strong>
+            <strong>Total: Rs {total.toFixed(2)}</strong>
           </div>
           {errorMessage && (
             <div className="mt-4 text-red-600 font-medium border border-red-400 bg-red-100 p-2 rounded">
