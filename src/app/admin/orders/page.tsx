@@ -96,7 +96,7 @@ function generateInvoicePDF({
     new Intl.NumberFormat("en-PK", {
       style: "currency",
       currency: "PKR",
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
     }).format(v);
 
   const total = order.total_amount;
@@ -133,33 +133,41 @@ function generateInvoicePDF({
     y += 12;
 
     // Invoice meta info
-    const metaLeftX = pageWidth - 70;
+    const metaLeftX = pageWidth - 60;
     const metaRightX = pageWidth - padding;
 
     doc.setFontSize(10);
-    doc.setFont("times", "bold");
-    doc.text("INVOICE #", metaLeftX, y);
-    doc.setFont("times", "normal");
-    doc.text(order.id.toString(), metaRightX, y, { align: "right" });
+    let currentY = y;
+    const lineGap = 5;
 
     doc.setFont("times", "bold");
-    doc.text("DATE", metaLeftX, y + 5);
+    doc.text("INVOICE #", metaLeftX, currentY);
+    doc.setFont("times", "normal");
+    doc.text(order.id.toString(), metaRightX, currentY, { align: "right" });
+
+    currentY += lineGap;
+
+    doc.setFont("times", "bold");
+    doc.text("DATE", metaLeftX, currentY);
     doc.setFont("times", "normal");
     doc.text(
       new Date(order.created_at).toLocaleDateString(),
       metaRightX,
-      y + 5,
+      currentY,
       { align: "right" }
     );
 
+    currentY += lineGap;
+
     doc.setFont("times", "bold");
-    doc.text("STATUS", metaLeftX, y + 10);
+    doc.text("STATUS", metaLeftX, currentY);
     doc.setFont("times", "normal");
-    doc.text(paymentStatus.toUpperCase(), metaRightX, y + 10, {
+    doc.text(paymentStatus.toUpperCase(), metaRightX, currentY, {
       align: "right",
     });
 
-    y += 25;
+    y = currentY + 10;
+
 
     // Table
     autoTable(doc, {
@@ -229,8 +237,20 @@ function generateInvoicePDF({
     img.crossOrigin = "anonymous";
     img.src = company.logo_url;
     img.onload = () => {
-      doc.addImage(img, "PNG", padding, y, 40, 20); // fixed height
-      y += 22;
+      const maxWidth = 50; // optional constraint to avoid overly large logos
+      const maxHeight = 30;
+
+      let { width, height } = img;
+
+      // Optional: scale proportionally if it exceeds max
+      if (width > maxWidth || height > maxHeight) {
+        const scale = Math.min(maxWidth / width, maxHeight / height);
+        width *= scale;
+        height *= scale;
+      }
+
+      doc.addImage(img, "PNG", padding, y, width, height);
+      y += height + 5;
       renderDetails();
       doc.save(`invoice_order_${order.id}.pdf`);
     };
