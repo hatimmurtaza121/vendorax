@@ -151,30 +151,27 @@ export default function ManufacturePage() {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("/api/products");
-        if (!res.ok) throw new Error(res.statusText);
-        const data: Product[] = await res.json();
-        setProducts(data);
-      } catch (err: any) {
-        setError(err.message);
-      }
-    };
-
     fetchProducts();
   }, []);
 
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (!res.ok) throw new Error(res.statusText);
+      const data: Product[] = await res.json();
+      setProducts(data);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   const handleManufacture = async () => {
-    // require at least one raw + one finished
     if (!rawItems.length || !finishedItems.length) {
       setError("Add at least one raw and one finished product.");
       return;
     }
 
-    // clear previous raw errors
     setRawErrors([]);
-
     // raw-materials validation
     const newErrors = rawItems.map((r) => {
       const p = products.find((pr) => pr.id === r.productId)!;
@@ -203,6 +200,7 @@ export default function ManufacturePage() {
       setRawItems([]);
       setFinishedItems([]);
       setRawErrors([]);
+      await fetchProducts();
     } catch (err: any) {
       setError(err.message);
     } finally {

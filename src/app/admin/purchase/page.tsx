@@ -175,14 +175,15 @@ export default function PurchasePage() {
 
       if (!response.ok) throw new Error("Failed to create purchase order");
 
+      // Clear form
       setItems([]);
       setSelectedAccount(null);
       setResetKey((prev) => prev + 1);
       setPaidAmount("");
       await fetchProducts();
     } catch (error) {
-      setErrorMessage("Error creating purchase order.");
-      console.error(error);
+      console.error("Error creating purchase order:", error);
+      setErrorMessage("Failed to create purchase order.");
     } finally {
       setIsPurchasing(false);
     }

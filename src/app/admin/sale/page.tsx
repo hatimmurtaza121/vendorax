@@ -195,12 +195,14 @@ export default function SalesPage() {
       if (!response.ok) throw new Error("Failed to create order.");
   
       // Clear form
-      setIsCreating(false);
       setSelectedProducts([]);
       setSelectedaccount(null);
+      setPaidAmount("");
+      await fetchProducts();
     } catch (error) {
-      console.error("Error creating order:", error);
-      setErrorMessage("Failed to create order.");
+      console.error("Error creating sale order:", error);
+      setErrorMessage("Failed to create sale order.");
+    } finally {
       setIsCreating(false);
     }
   };
