@@ -152,8 +152,11 @@ export default function ManufacturePage() {
   const [isManufacturing, setIsManufacturing] = useState(false);
   
   useEffect(() => {
+    requestAnimationFrame(() => {
+      setLoading(false);
+    });
+    
     fetchProducts();
-    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {

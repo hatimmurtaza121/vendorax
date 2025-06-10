@@ -58,9 +58,12 @@ export default function PurchasePage() {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    requestAnimationFrame(() => {
+      setLoading(false);
+    });
+    
     fetchProducts();
     fetchAccounts();
-    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {

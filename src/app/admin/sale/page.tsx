@@ -49,9 +49,12 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    requestAnimationFrame(() => {
+      setLoading(false);
+    });
+
     fetchProducts();
     fetchaccounts();
-    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {
