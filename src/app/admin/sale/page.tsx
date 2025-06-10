@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, Fragment } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,7 +13,7 @@ import { QuantityInput } from "@/components/ui/quantity-input";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2Icon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 // Types
@@ -47,10 +46,12 @@ export default function SalesPage() {
   const [productErrors, setProductErrors] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [paidAmount, setPaidAmount] = useState<number | "">("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts();
     fetchaccounts();
+    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {
@@ -207,6 +208,13 @@ export default function SalesPage() {
     }
   };
   
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2Icon className="mx-auto h-12 w-12 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">

@@ -20,7 +20,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { QuantityInput } from "@/components/ui/quantity-input";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2Icon } from "lucide-react";
 
 interface Product {
   id: number;
@@ -147,11 +147,13 @@ export default function ManufacturePage() {
   const [rawItems, setRawItems] = useState<MaterialRow[]>([]);
   const [finishedItems, setFinishedItems] = useState<MaterialRow[]>([]);
   const [rawErrors, setRawErrors] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isManufacturing, setIsManufacturing] = useState(false);
   
   useEffect(() => {
     fetchProducts();
+    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {
@@ -185,9 +187,9 @@ export default function ManufacturePage() {
       return;
     }
 
-    setLoading(true);
     setError(null);
     try {
+      setIsManufacturing(true);
       const res = await fetch("/api/manufacture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,9 +206,17 @@ export default function ManufacturePage() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsManufacturing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2Icon className="mx-auto h-12 w-12 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -230,7 +240,8 @@ export default function ManufacturePage() {
       <div className="text-leftt">
         <LoadingButton 
           onClick={handleManufacture} 
-          isLoading={loading}
+          isLoading={isManufacturing}
+          loadingText="Manufacturing..."
         >
           <PlusCircle className="w-4 h-4 mr-2" />
           Manufacture

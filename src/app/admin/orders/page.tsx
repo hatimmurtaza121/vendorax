@@ -44,6 +44,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { LoadingButton } from "@/components/ui/loading-button";
+import StatusBadge from "@/components/ui/statusbadge";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -526,10 +527,10 @@ export default function OrdersPage() {
                   <TableHead>Account</TableHead>
                   <TableHead>Total Amount</TableHead>
                   <TableHead>Amount Left</TableHead>
-                  <TableHead>Order Status</TableHead>
                   <TableHead>Payment Status</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Order Status</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -543,10 +544,16 @@ export default function OrdersPage() {
                     <TableCell>{o.accounts.name}</TableCell>
                     <TableCell>Rs {o.total_amount.toFixed(2)}</TableCell>
                     <TableCell>Rs {left.toFixed(2)}</TableCell>
-                    <TableCell className="capitalize">{o.status}</TableCell>
-                    <TableCell>{o.transactions?.[0]?.status}</TableCell>
-                    <TableCell>{o.type}</TableCell>
+                    <TableCell>
+                      <StatusBadge type="paymentStatus" value={o.transactions?.[0]?.status || 'unpaid'} />
+                    </TableCell>
                     <TableCell>{formatDate(o.created_at)}</TableCell>
+                    <TableCell>
+                      <StatusBadge type="orderStatus" value={o.status} />
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge type="orderType" value={o.type} />
+                    </TableCell>
                     <TableCell>
                       <Button size="icon" variant="ghost" className="hover:bg-blue-100 transition rounded-full" onClick={()=>handleViewOrder(o)}>
                         <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition"/>

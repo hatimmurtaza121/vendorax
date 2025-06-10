@@ -17,7 +17,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/ui/statusbadge";
 import { 
   FilePenIcon, 
   TrashIcon,
@@ -68,6 +68,7 @@ export default function Cashier() {
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
     description: "",
     category: "",
@@ -99,6 +100,7 @@ export default function Cashier() {
     setFormError(null);
     
     try {
+      setIsAdding(true);
       const payload = { ...newTransaction };
       const response = await fetch("/api/transactions", {
         method: "POST",
@@ -117,6 +119,8 @@ export default function Cashier() {
       }
     } catch (error) {
       console.error("Error adding transaction:", error);
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -233,10 +237,10 @@ export default function Cashier() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Date</TableHead>
                 <TableHead>Paid Amount</TableHead>
                 <TableHead>Total Amount</TableHead>
                 <TableHead>Status</TableHead>
@@ -244,57 +248,9 @@ export default function Cashier() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>{transaction.id}</TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell>{transaction.category}</TableCell>
-                  <TableCell>
-                    <Badge variant={transaction.type}>{transaction.type}</Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(transaction.created_at)}</TableCell>
-                  <TableCell>Rs {transaction.paid_amount.toFixed(2)}</TableCell>
-                  <TableCell>Rs {transaction.amount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant={transaction.status === "paid" ? "default" : "secondary"}>
-                      {transaction.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {/* Edit Button */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="hover:bg-gray-100 transition rounded-full"
-                        onClick={() => {
-                          setTransactionToEdit(transaction);
-                          setNextPayment("");
-                          setNextPaymentError(null);
-                          setIsEditDialogOpen(true);
-                        }}
-                      >
-                        <FilePenIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition" />
-                      </Button>
-
-                      {/* Delete Button */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="hover:bg-red-100 transition rounded-full"
-                        onClick={() => {
-                          setTransactionToDelete(transaction);
-                          setIsDeleteConfirmationOpen(true);
-                        }}
-                      >
-                        <TrashIcon className="w-5 h-5 text-red-500 hover:text-red-700 transition" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
               <TableRow>
                 <TableCell>New</TableCell>
+                <TableCell>{formatDate(new Date().toISOString())}</TableCell>
                 <TableCell>
                   <Input
                     name="description"
@@ -327,7 +283,6 @@ export default function Cashier() {
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell>{formatDate(new Date().toISOString())}</TableCell>
                 <TableCell>
                   <Input
                     name="paid_amount"
@@ -347,17 +302,71 @@ export default function Cashier() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={computeStatus() === "paid" ? "default" : "secondary"}>
-                    {computeStatus()}
-                  </Badge>
+                  <StatusBadge type="paymentStatus" value={computeStatus()} />
                 </TableCell>
                 <TableCell>
-                  <Button onClick={handleAddTransaction}>
+                  <LoadingButton
+                    onClick={handleAddTransaction}
+                    isLoading={isAdding}
+                    loadingText="Adding..."
+                  >
                     <PlusCircle className="w-4 h-4 mr-2" />
                     Add
-                  </Button>
+                  </LoadingButton>
                 </TableCell>
               </TableRow>
+
+              {[...transactions]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>{transaction.id}</TableCell>
+                    <TableCell>{formatDate(transaction.created_at)}</TableCell>
+                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell>{transaction.category}</TableCell>
+                    <TableCell>
+                      <StatusBadge type="transactionType" value={transaction.type} />
+                    </TableCell>
+                    <TableCell>Rs {transaction.paid_amount.toFixed(2)}</TableCell>
+                    <TableCell>Rs {transaction.amount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <StatusBadge type="paymentStatus" value={transaction.status} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {/* Edit Button */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-gray-100 transition rounded-full"
+                          onClick={() => {
+                            setTransactionToEdit(transaction);
+                            setNextPayment("");
+                            setNextPaymentError(null);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <FilePenIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition" />
+                        </Button>
+
+                        {/* Delete Button */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-red-100 transition rounded-full"
+                          onClick={() => {
+                            setTransactionToDelete(transaction);
+                            setIsDeleteConfirmationOpen(true);
+                          }}
+                        >
+                          <TrashIcon className="w-5 h-5 text-red-500 hover:text-red-700 transition" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+              ))}
+
+
             </TableBody>
           </Table>
           {formError && (

@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2Icon } from "lucide-react";
 
 interface Product {
   id: number;
@@ -55,10 +55,12 @@ export default function PurchasePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     fetchProducts();
     fetchAccounts();
+    setLoading(false);
   }, []);
 
   const fetchProducts = async () => {
@@ -188,6 +190,14 @@ export default function PurchasePage() {
       setIsPurchasing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2Icon className="mx-auto h-12 w-12 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
