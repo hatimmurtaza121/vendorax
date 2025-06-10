@@ -45,12 +45,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClient();
 
-   // Closing sidebar when page changes
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
   
-  // Sign out and send back to login
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -102,7 +100,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             className="h-8 w-8"
             unoptimized
           />
-          {/* <span className="sr-only">Vendora Ax</span> */}
         </Link>
 
         <h1 className="text-xl font-bold">{pageNames[pathname]}</h1>
@@ -138,10 +135,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               <Link href="/admin/settings">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
-
-            {/* <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleAddDemoData}>Add Demo Data</DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDeleteDemoData}>Delete Demo Data</DropdownMenuItem> */}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>

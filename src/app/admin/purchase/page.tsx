@@ -61,7 +61,7 @@ export default function PurchasePage() {
     requestAnimationFrame(() => {
       setLoading(false);
     });
-    
+
     fetchProducts();
     fetchAccounts();
   }, []);
@@ -208,7 +208,7 @@ export default function PurchasePage() {
         <CardHeader>
           <CardTitle>Purchase Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 py-4 items-end">
+        <CardContent className="flex flex-wrap sm:flex-nowrap items-start gap-4 pb-4 items-end">
           <div className="flex-auto w-full sm:w-1/2">
             <Combobox
               key={resetKey}

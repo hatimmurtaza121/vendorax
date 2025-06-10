@@ -223,8 +223,6 @@ export default function ManufacturePage() {
 
   return (
     <div className="space-y-8">
-      {error && <div className="text-red-600">{error}</div>}
-
       <Section
         title="Raw Materials"
         items={rawItems}
@@ -239,6 +237,11 @@ export default function ManufacturePage() {
         setItems={setFinishedItems}
         products={products}
       />
+      {error && (
+        <div className="mt-4 text-red-600 font-medium border border-red-400 bg-red-100 p-2 rounded">
+          {error}
+        </div>
+      )}
 
       <div className="text-leftt">
         <LoadingButton 

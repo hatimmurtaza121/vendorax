@@ -15,6 +15,7 @@ import {
   EyeIcon,
   FilterIcon,
   DownloadIcon,
+  Loader2,
 } from "lucide-react";
 import {
   Table,
@@ -282,6 +283,7 @@ export default function OrdersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [company, setCompany] = useState({
     name: "",
     address: "",
@@ -373,6 +375,7 @@ export default function OrdersPage() {
 
   const handleDownloadInvoice = async (order: Order) => {
     try {
+      setDownloadingId(order.id);
       const res = await fetch(`/api/orders/${order.id}/items`);
       const items = await res.json();
 
@@ -396,6 +399,8 @@ export default function OrdersPage() {
       });
     } catch (err) {
       console.error("Failed to generate invoice:", err);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -555,17 +560,24 @@ export default function OrdersPage() {
                       <StatusBadge type="orderType" value={o.type} />
                     </TableCell>
                     <TableCell>
-                      <Button size="icon" variant="ghost" className="hover:bg-blue-100 transition rounded-full" onClick={()=>handleViewOrder(o)}>
-                        <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition"/>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="hover:bg-green-100 ml-1 transition rounded-full"
-                        onClick={() => handleDownloadInvoice(o)}
-                      >
-                        <DownloadIcon className="w-5 h-5 text-green-600 hover:text-green-800 transition" />
-                      </Button>
+                      <div className="flex items-center space-x-1">
+                        <Button size="icon" variant="ghost" className="hover:bg-blue-100 transition rounded-full" onClick={()=>handleViewOrder(o)}>
+                          <EyeIcon className="w-5 h-5 text-gray-500 hover:text-blue-600 transition"/>
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="hover:bg-green-100 ml-1 transition rounded-full"
+                          onClick={() => handleDownloadInvoice(o)}
+                          disabled={downloadingId === o.id}
+                        >
+                          {downloadingId === o.id ? (
+                            <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
+                          ) : (
+                            <DownloadIcon className="w-5 h-5 text-green-600 hover:text-green-800 transition" />
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>);
                 })}

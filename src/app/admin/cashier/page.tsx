@@ -55,6 +55,7 @@ interface Transaction {
   paid_amount: number;
   amount: number;
   status: string;
+  order_id?: number | null;
 }
 
 export default function Cashier() {
@@ -350,17 +351,19 @@ export default function Cashier() {
                         </Button>
 
                         {/* Delete Button */}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="hover:bg-red-100 transition rounded-full"
-                          onClick={() => {
-                            setTransactionToDelete(transaction);
-                            setIsDeleteConfirmationOpen(true);
-                          }}
-                        >
-                          <TrashIcon className="w-5 h-5 text-red-500 hover:text-red-700 transition" />
-                        </Button>
+                        {transaction.order_id === null && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="hover:bg-red-100 transition rounded-full"
+                            onClick={() => {
+                              setTransactionToDelete(transaction);
+                              setIsDeleteConfirmationOpen(true);
+                            }}
+                          >
+                            <TrashIcon className="w-5 h-5 text-red-500 hover:text-red-700 transition" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
