@@ -1,5 +1,4 @@
 "use client";
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Select,
   SelectContent,
@@ -96,6 +96,7 @@ export default function Products() {
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const resetSelectedProduct = () => {
     setSelectedProductId(null);
@@ -112,6 +113,7 @@ export default function Products() {
       return;
     }
     setErrorMessage("");
+    setSubmitLoading(true);
     try {
       const newProduct = {
         name: productName,
@@ -139,11 +141,14 @@ export default function Products() {
       }
     } catch (error) {
       console.error("Error adding product:", error);
+    } finally {
+      setSubmitLoading(false);
     }
   }, [productName, productDescription, productPrice, productInStock, productCategory, products]);
 
   const handleEditProduct = useCallback(async () => {
     if (!selectedProductId) return;
+    setSubmitLoading(true);
     try {
       const updatedProduct = {
         id: selectedProductId,
@@ -177,6 +182,8 @@ export default function Products() {
       }
     } catch (error) {
       console.error("Error updating product:", error);
+    } finally {
+      setSubmitLoading(false);
     }
   }, [selectedProductId, productName, productDescription, productPrice, productInStock, productCategory, unit, customUnit, products,]);
 
@@ -308,28 +315,20 @@ export default function Products() {
                     All Categories
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={filters.category === "electronics"}
+                    checked={filters.category === "dry_fruits"}
                     onCheckedChange={() =>
-                      handleFilterChange("category", "electronics")
+                      handleFilterChange("category", "dry_fruits")
                     }
                   >
-                    Electronics
+                    Dry Fruits
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={filters.category === "home"}
+                    checked={filters.category === "spices"}
                     onCheckedChange={() =>
-                      handleFilterChange("category", "home")
+                      handleFilterChange("category", "spices")
                     }
                   >
-                    Home
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.category === "health"}
-                    onCheckedChange={() =>
-                      handleFilterChange("category", "health")
-                    }
-                  >
-                    Health
+                    Spices
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
@@ -579,14 +578,14 @@ export default function Products() {
                   {errorMessage}
                 </p>
               )}
-              <Button
-                onClick={
-                  isAddProductDialogOpen ? handleAddProduct : handleEditProduct
-                }
+              <LoadingButton
+                onClick={isAddProductDialogOpen ? handleAddProduct : handleEditProduct}
+                isLoading={submitLoading}
+                loadingText={isAddProductDialogOpen ? "Adding..." : "Updating..."}
               >
                 <PlusCircle className="w-4 h-4 mr-2" />
                 {isAddProductDialogOpen ? "Add Product" : "Update Product"}
-              </Button>
+              </LoadingButton>
             </div>
           </DialogFooter>
         </DialogContent>
