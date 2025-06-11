@@ -427,28 +427,108 @@ export default function Products() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
-          <div className="flex gap-2">
+        <CardFooter className="flex flex-col sm:flex-row sm:justify-between items-center gap-4">
+          <div className="flex gap-2 flex-wrap justify-center">
+            {/* Prev Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
-              Previous
+              Prev
             </Button>
 
-            {Array.from({ length: totalPages }, (_, i) => (
-              <Button
-                key={i}
-                variant={currentPage === i + 1 ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
+            {/* Mobile View: Smart Pagination (max 3 pages + first/last + ellipsis) */}
+            <div className="flex gap-1 md:hidden">
+              {currentPage > 2 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                  >
+                    1
+                  </Button>
+                  {currentPage > 3 && <span className="px-1 text-gray-500">...</span>}
+                </>
+              )}
 
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => Math.abs(page - currentPage) <= 1)
+                .map((page) => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+              {currentPage < totalPages - 1 && (
+                <>
+                  {currentPage < totalPages - 2 && (
+                    <span className="px-1 text-gray-500">...</span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Desktop: Smart Pagination (show 10 pages max) */}
+            <div className="hidden md:flex gap-1 flex-wrap justify-center">
+              {currentPage > 6 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                  >
+                    1
+                  </Button>
+                  {currentPage > 7 && <span className="px-1 text-gray-500">...</span>}
+                </>
+              )}
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => Math.abs(page - currentPage) <= 5)
+                .map((page) => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+              {currentPage < totalPages - 5 && (
+                <>
+                  {currentPage < totalPages - 6 && (
+                    <span className="px-1 text-gray-500">...</span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+
+
+            {/* Next Button */}
             <Button
               variant="outline"
               size="sm"
@@ -458,10 +538,12 @@ export default function Products() {
               Next
             </Button>
           </div>
+
           <div className="text-sm text-muted-foreground">
             Page {currentPage} of {totalPages}
           </div>
         </CardFooter>
+
       </Card>
       <Dialog
         open={isAddProductDialogOpen || isEditProductDialogOpen}
