@@ -66,8 +66,9 @@ export default function Products() {
   const [unit, setUnit] = useState("pcs");
   const [customUnit, setCustomUnit] = useState("");
   const categories = [
+    { value: 'dry_fruits', label: 'Dry Fruits' },
+    { value: 'spices', label: 'Spices' },
     { value: 'food_grocery', label: 'Food & Grocery' },
-    { value: 'beverages', label: 'Beverages' },
     { value: 'personal_care', label: 'Personal Care' },
     { value: 'cleaning_supplies', label: 'Cleaning Supplies' },
     { value: 'stationery', label: 'Stationery' },
@@ -221,7 +222,7 @@ export default function Products() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    const filtered = products.filter((product) => {
       if (filters.category !== "all" && product.category !== filters.category) {
         return false;
       }
@@ -234,6 +235,8 @@ export default function Products() {
       }
       return product.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
+
+    return [...filtered].reverse();
   }, [products, filters.category, filters.inStock, searchTerm]);
 
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -425,7 +428,41 @@ export default function Products() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter></CardFooter>
+        <CardFooter className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => (
+              <Button
+                key={i}
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </div>
+        </CardFooter>
       </Card>
       <Dialog
         open={isAddProductDialogOpen || isEditProductDialogOpen}
