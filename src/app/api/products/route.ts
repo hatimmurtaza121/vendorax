@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     .from('products')
     .select('*')
     .eq('user_uid', user.id)
+    .order('name', { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

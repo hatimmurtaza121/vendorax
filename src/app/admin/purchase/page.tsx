@@ -67,8 +67,14 @@ export default function PurchasePage() {
   }, []);
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase.from("products").select();
-    if (!error && data) setProducts(data);
+    try {
+      const response = await fetch("/api/products");
+      if (!response.ok) throw new Error("Failed to fetch products");
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
   };
 
   const fetchAccounts = async () => {
