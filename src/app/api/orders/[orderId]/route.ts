@@ -169,7 +169,7 @@ export async function DELETE(
   // ── Step 2: Get related order items ───────────
   const { data: items, error: itemsFetchErr } = await supabase
     .from("order_items")
-    .select("product_id, quantity")
+    .select("id, order_id, product_id, quantity, price")
     .eq("order_id", orderId);
 
   if (itemsFetchErr || !items) {
@@ -177,6 +177,20 @@ export async function DELETE(
       { error: itemsFetchErr?.message || "Order items fetch failed" },
       { status: 500 }
     );
+  }
+
+  // Step 2.5: Recalculate cost_price now that deleted item is gone
+  if (order.type === "purchase") {
+    for (const item of items) {
+      const { error: recalcErr } = await supabase.rpc("recalculate_cost_price", {
+        _product_id: item.product_id,
+        _purchase_price: item.price,      // purchase price of the removed item
+        _quantity_removed: item.quantity, // quantity of the removed item
+      });
+      if (recalcErr) {
+        console.error("Cost price recalculation failed", recalcErr.message);
+      }
+    }
   }
 
   // ── Step 3: Reverse stock changes ─────────────

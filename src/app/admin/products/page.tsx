@@ -58,6 +58,7 @@ interface Product {
   unit: string;
   description: string;
   price: number;
+  cost_price: number;
   in_stock: number;
   category: string;
 }
@@ -90,6 +91,7 @@ export default function Products() {
   const [productName, setProductName] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [productPrice, setProductPrice] = useState(0);
+  const [productCostPrice, setProductCostPrice] = useState(0);
   const [productInStock, setProductInStock] = useState(0);
   const [productCategory, setProductCategory] = useState("");
   const [isEditProductDialogOpen, setIsEditProductDialogOpen] = useState(false);
@@ -103,6 +105,7 @@ export default function Products() {
     setProductName("");
     setProductDescription("");
     setProductPrice(0);
+    setProductCostPrice(0);
     setProductInStock(0);
     setProductCategory("");
   };
@@ -119,6 +122,7 @@ export default function Products() {
         name: productName,
         description: productDescription,
         price: productPrice,
+        cost_price: productCostPrice,
         in_stock: productInStock,
         category: productCategory,
         unit: unit === "other" ? customUnit : unit,
@@ -155,6 +159,7 @@ export default function Products() {
         name: productName,
         description: productDescription,
         price: productPrice,
+        cost_price: productCostPrice,
         in_stock: productInStock,
         category: productCategory,
         unit: unit === "other" ? customUnit : unit,
@@ -369,7 +374,8 @@ export default function Products() {
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>Selling Price</TableHead>
+                  <TableHead>Cost Price</TableHead>
                   <TableHead>Stock</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead>Actions</TableHead>
@@ -383,6 +389,7 @@ export default function Products() {
                     </TableCell>
                     <TableCell>{product.description}</TableCell>
                     <TableCell>Rs {product.price.toFixed(2)}</TableCell>
+                    <TableCell>Rs {(product.cost_price ?? 0).toFixed(2)}</TableCell>
                     <TableCell>{product.in_stock}</TableCell>
                     <TableCell>{product.unit}</TableCell>
                     <TableCell>
@@ -396,6 +403,7 @@ export default function Products() {
                             setProductName(product.name);
                             setProductDescription(product.description);
                             setProductPrice(product.price);
+                            setProductCostPrice(product.cost_price);
                             setProductInStock(product.in_stock);
                             setProductCategory(product.category);
                             const defaultUnits = ["pcs", "kg", "g", "ft"];
@@ -591,13 +599,25 @@ export default function Products() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="price" className="text-right">
-                Price
+                Selling Price
               </Label>
               <Input
                 id="price"
                 type="number"
                 value={productPrice}
                 onChange={(e) => setProductPrice(Number(e.target.value))}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="cost_price" className="text-right">
+                Cost Price
+              </Label>
+              <Input
+                id="cost_price"
+                type="number"
+                value={productCostPrice}
+                onChange={(e) => setProductCostPrice(Number(e.target.value))}
                 className="col-span-3"
               />
             </div>

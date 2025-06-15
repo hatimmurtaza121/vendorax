@@ -58,28 +58,70 @@ export default function Page() {
       <div>
         <h2 className="text-xl font-semibold mb-2">Financial Summary</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {/* Total Revenue */}
           <Card>
             <CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.totalRevenue || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.totalRevenue || 0)}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Cost of Goods Sold */}
           <Card>
-            <CardHeader><CardTitle>Total Expenses</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Cost of Goods Sold (COGS)</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.totalExpenses || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.cogs || 0)}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Gross Profit */}
           <Card>
-            <CardHeader><CardTitle>Total Profit</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Gross Profit</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.totalProfit || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.grossProfit || 0)}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Net Profit */}
+          <Card>
+            <CardHeader><CardTitle>Net Profit</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.netProfit || 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Advance Payments */}
+          <Card>
+            <CardHeader><CardTitle>Advance Payments Received</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.advancePayments || 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Total Income In Hand */}
+          <Card>
+            <CardHeader><CardTitle>Total Income In Hand</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                Rs {Number(summary.incomeInHand || 0)}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader><CardTitle>Sales This Month</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.salesThisMonth || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.salesThisMonth || 0)}</div>
             </CardContent>
           </Card>
         </div>
@@ -87,13 +129,13 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.creditToCollect || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.creditToCollect || 0)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.debitToPay || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.debitToPay || 0)}</div>
             </CardContent>
           </Card>
         </div>
@@ -106,7 +148,7 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.totalInventory || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold">Rs {Number(summary.totalInventory || 0)}</div>
             </CardContent>
           </Card>
           <Card>

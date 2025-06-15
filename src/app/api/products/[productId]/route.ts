@@ -12,13 +12,29 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const updatedProduct = await request.json();
+  const {
+    name,
+    description,
+    price,
+    cost_price,
+    in_stock,
+    unit,
+    category
+  } = await request.json();
+
   const productId = params.productId;
 
-  // Only update the products table
   const { data, error } = await supabase
     .from('products')
-    .update({ ...updatedProduct })
+    .update({
+      name,
+      description,
+      price,
+      cost_price,
+      in_stock,
+      unit,
+      category
+    })
     .eq('id', productId)
     .eq('user_uid', user.id)
     .select();
