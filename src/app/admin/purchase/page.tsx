@@ -30,6 +30,7 @@ interface Product {
   unit?: string;
   in_stock: number;
   price: number;
+  last_buy_price: number;
 }
 
 interface Account {
@@ -102,7 +103,7 @@ export default function PurchasePage() {
       {
         ...product,
         quantity: 1,
-        buyPrice: 0,
+        buyPrice: product.last_buy_price,
         sellPrice: product.price,
         originalSellPrice: product.price,
       },
