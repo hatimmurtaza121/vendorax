@@ -89,9 +89,9 @@ function Section({
                     <TableCell>{p.name}</TableCell>
                     <TableCell>
                       <span>
-                        {p.description.length > 50
+                        {p.description && p.description.length > 50
                           ? `${p.description.slice(0, 50)}…`
-                          : p.description}
+                          : p.description || "-"}
                       </span>
                     </TableCell>
                     <TableCell>

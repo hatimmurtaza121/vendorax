@@ -26,7 +26,13 @@ interface ComboboxProps {
   className?: string;
 }
 
-export function Combobox({ items, placeholder, onSelect, noSelect, className }: ComboboxProps) {
+export function Combobox({
+  items,
+  placeholder,
+  onSelect,
+  noSelect,
+  className,
+}: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [popoverWidth, setPopoverWidth] = useState(0);
@@ -49,9 +55,7 @@ export function Combobox({ items, placeholder, onSelect, noSelect, className }: 
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" align="start"
-        style={{ width: popoverWidth }}
-      >
+      <PopoverContent className="p-0" align="start" style={{ width: popoverWidth }}>
         <Command>
           <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
           <CommandEmpty>No item found.</CommandEmpty>
@@ -60,16 +64,13 @@ export function Combobox({ items, placeholder, onSelect, noSelect, className }: 
               {items.map((item) => (
                 <CommandItem
                   key={item.id}
-                  value={item.id.toString()}
-                  onSelect={(currentValue) => {
-                    if (typeof item.id === "string") {
-                      onSelect(currentValue);
-                    } else {
-                      onSelect(Number(currentValue));
-                    }
+                  value={item.name.toLowerCase()}
+                  onSelect={() => {
+                    onSelect(item.id);
                     setOpen(false);
-                    if (noSelect) return;
-                    setValue(item.name);
+                    if (!noSelect) {
+                      setValue(item.name);
+                    }
                   }}
                 >
                   {item.name}

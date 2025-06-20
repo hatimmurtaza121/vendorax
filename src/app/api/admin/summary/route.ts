@@ -22,7 +22,6 @@ export async function GET() {
       debitRes,
       cogsRes,
       grossProfitRes,
-      advanceRes,
       incomeInHandRes
     ] = await Promise.all([
       supabase.rpc('get_total_revenue'),
@@ -41,7 +40,6 @@ export async function GET() {
       supabase.rpc('get_debit_to_pay'),
       supabase.rpc('get_cogs'),
       supabase.rpc('get_gross_profit'),
-      supabase.rpc('get_advance_payments'),
       supabase.rpc('get_total_income_in_hand')
     ]);
 
@@ -62,7 +60,6 @@ export async function GET() {
       debitRes,
       cogsRes,
       grossProfitRes,
-      advanceRes,
       incomeInHandRes
     ];
 
@@ -89,7 +86,6 @@ export async function GET() {
       debitToPay: debitRes.data,
       cogs: cogsRes.data,
       grossProfit: grossProfitRes.data,
-      advancePayments: advanceRes.data,
       incomeInHand: incomeInHandRes.data
     });
   } catch (error) {

@@ -98,16 +98,6 @@ export default function Page() {
             </CardContent>
           </Card>
 
-          {/* Advance Payments */}
-          <Card>
-            <CardHeader><CardTitle>Advance Payments Received</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                Rs {Number(summary.advancePayments || 0)}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Total Income In Hand */}
           <Card>
             <CardHeader><CardTitle>Total Income In Hand</CardTitle></CardHeader>

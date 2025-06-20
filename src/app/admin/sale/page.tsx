@@ -266,7 +266,6 @@ export default function SalesPage() {
             placeholder="Select Product"
             noSelect
             onSelect={handleSelectProduct}
-            className="!mt-5"
           />
         </CardHeader>
         <CardContent>
