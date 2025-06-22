@@ -62,6 +62,7 @@ export default function Cashier() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +130,7 @@ export default function Cashier() {
   const handleDeleteTransaction = useCallback(async () => {
     if (!transactionToDelete) return;
     try {
+      setIsDeleting(true);
       const response = await fetch(
         `/api/transactions/${transactionToDelete.id}`,
         { method: "DELETE" }
@@ -142,6 +144,8 @@ export default function Cashier() {
       }
     } catch (error) {
       console.error("Error deleting transaction:", error);
+    } finally {
+      setIsDeleting(false);
     }
   }, [transactionToDelete]);
 
@@ -528,12 +532,18 @@ export default function Cashier() {
             <Button
               variant="outline"
               onClick={() => setIsDeleteConfirmationOpen(false)}
+              disabled={isDeleting}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteTransaction}>
+            <LoadingButton
+              isLoading={isDeleting}
+              loadingText="Deleting..."
+              variant="destructive"
+              onClick={handleDeleteTransaction}
+            >
               Delete
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
