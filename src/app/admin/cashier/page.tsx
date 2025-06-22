@@ -102,7 +102,7 @@ export default function Cashier() {
     
     try {
       setIsAdding(true);
-      const payload = { ...newTransaction };
+      const payload = { ...newTransaction, status: computeStatus() };
       const response = await fetch("/api/transactions", {
         method: "POST",
         headers: {
@@ -163,8 +163,7 @@ export default function Cashier() {
     }
 
     const newPaid = currentPaid + payment;
-    const status =
-      newPaid >= total ? "paid" : newPaid <= 0 ? "unpaid" : "partial";
+    const newstatus = (newPaid >= total) ? "paid" : newPaid <= 0 ? "unpaid" : "partial";
     
     setIsSaving(true);
 
@@ -177,7 +176,7 @@ export default function Cashier() {
         body: JSON.stringify({
           ...transactionToEdit,
           paid_amount: newPaid,
-          status,
+          status: newstatus,
         }),
       });
 

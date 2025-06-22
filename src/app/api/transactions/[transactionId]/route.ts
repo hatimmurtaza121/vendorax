@@ -13,7 +13,7 @@ export async function PUT(
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const { description, category, type, amount, paid_amount } = body;
+  const { description, category, type, amount, paid_amount, status } = body;
 
   const { data, error } = await supabase
     .from("transactions")
@@ -22,7 +22,8 @@ export async function PUT(
       category,
       type,
       amount,
-      paid_amount
+      paid_amount,
+      status
     })
     .eq("id", Number(transactionId))
     .eq("user_uid", user.id)
