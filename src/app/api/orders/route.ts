@@ -128,12 +128,20 @@ export async function POST(request: Request) {
     }
 
     // ── 4) Create Transaction ──────────────────────────────
+    const status =
+      paid_amount >= total_amount
+        ? "paid"
+        : paid_amount <= 0
+        ? "unpaid"
+        : "partial";
+
     const { data: tx, error: txErr } = await supabase
       .from("transactions")
       .insert({
         order_id: order.id,
         amount: total_amount,
         paid_amount,
+        status,
         user_uid: user.id,
         type: type === "sale" ? "income" : "expense",
         category: type === "sale" ? "selling" : "purchase",

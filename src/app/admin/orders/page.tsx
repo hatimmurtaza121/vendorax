@@ -708,7 +708,11 @@ export default function OrdersPage() {
             Are you sure you want to delete order #{selectedOrder?.id}? This cannot be undone.
           </p>
           <DialogFooter>
-            <Button onClick={() => setShowDeleteConfirm(false)} variant="outline">
+            <Button 
+              onClick={() => setShowDeleteConfirm(false)} 
+              variant="outline"
+              disabled={isDeleting}
+            >
               Cancel
             </Button>
             <LoadingButton
