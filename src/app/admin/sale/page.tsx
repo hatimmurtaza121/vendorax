@@ -132,6 +132,7 @@ export default function SalesPage() {
   );
 
   const handleCreateOrder = async () => {
+    if (isCreating) return;
     setIsCreating(true);
     const newErrors = selectedProducts.map((p) =>
       p.quantity > (p.in_stock ?? 0)
@@ -190,6 +191,7 @@ export default function SalesPage() {
             productId: p.id,
             quantity:  p.quantity,
             price:     p.price,
+            sellPrice: p.price,
           })),
           total_amount: total,
           type: "sale",
@@ -199,10 +201,10 @@ export default function SalesPage() {
       if (!response.ok) throw new Error("Failed to create order.");
   
       // Clear form
+      await fetchProducts();
       setSelectedProducts([]);
       setSelectedaccount(null);
       setPaidAmount("");
-      await fetchProducts();
     } catch (error) {
       console.error("Error creating sale order:", error);
       setErrorMessage("Failed to create sale order.");
@@ -344,6 +346,7 @@ export default function SalesPage() {
             <LoadingButton
               onClick={handleCreateOrder}
               isLoading={isCreating}
+              disabled={isCreating}
               loadingText="Creating..."
             >
               <PlusCircle className="w-4 h-4 mr-2" />

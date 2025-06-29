@@ -146,6 +146,7 @@ export default function PurchasePage() {
   const total = items.reduce((sum, p) => sum + p.buyPrice * p.quantity, 0);
 
   const handleSubmitPurchaseOrder = async () => {
+    if (isPurchasing) return;
     setIsPurchasing(true);
     setErrorMessage(null);
 
@@ -177,7 +178,7 @@ export default function PurchasePage() {
             productId: p.id,
             quantity: p.quantity,
             price: p.buyPrice,
-            sellPrice: p.sellPrice,
+            sellPrice: p.sellPrice ?? 0,
           })),
           total_amount: total,
           type: "purchase",
@@ -188,11 +189,10 @@ export default function PurchasePage() {
       if (!response.ok) throw new Error("Failed to create purchase order");
 
       // Clear form
+      await fetchProducts();
       setItems([]);
       setSelectedAccount(null);
-      setResetKey((prev) => prev + 1);
       setPaidAmount("");
-      await fetchProducts();
     } catch (error) {
       console.error("Error creating purchase order:", error);
       setErrorMessage("Failed to create purchase order.");
@@ -338,10 +338,11 @@ export default function PurchasePage() {
             <LoadingButton
               onClick={handleSubmitPurchaseOrder}
               isLoading={isPurchasing}
+              disabled={isPurchasing}
               loadingText="Purchasing..."
             >
               <PlusCircle className="w-4 h-4 mr-2" />
-              Submit Purchase
+              Create Purchase
             </LoadingButton>
           </div>
         </CardContent>
