@@ -239,7 +239,11 @@ export default function Products() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const filterParam = params.get("filter");
-      if (filterParam === "credit" || filterParam === "debit") {
+      if (filterParam === "low-stock") {
+        setFilters({ category: ["all"], inStock: ["low-stock"] });
+      } else if (filterParam === "out-of-stock") {
+        setFilters({ category: ["all"], inStock: ["out-of-stock"] });
+      } else if (filterParam === "credit" || filterParam === "debit") {
         setFilters({ category: ["all"], inStock: ["all"] });
       }
     }

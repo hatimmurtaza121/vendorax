@@ -336,6 +336,8 @@ export default function OrdersPage() {
         setFilters({ status: ["unpaid", "partial"], type: ["income"], orderStatus: ["all"] });
       } else if (filterParam === "debit") {
         setFilters({ status: ["unpaid", "partial"], type: ["expense"], orderStatus: ["all"] });
+      } else if (filterParam === "pending") {
+        setFilters({ status: ["all"], type: ["all"], orderStatus: ["pending"] });
       }
     }
   }, [router]);
