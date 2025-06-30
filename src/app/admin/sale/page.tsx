@@ -201,10 +201,11 @@ export default function SalesPage() {
       if (!response.ok) throw new Error("Failed to create order.");
   
       // Clear form
-      await fetchProducts();
-      setSelectedProducts([]);
-      setSelectedaccount(null);
-      setPaidAmount("");
+      window.location.reload();
+      // await fetchProducts();
+      // setSelectedProducts([]);
+      // setSelectedaccount(null);
+      // setPaidAmount("");
     } catch (error) {
       console.error("Error creating sale order:", error);
       setErrorMessage("Failed to create sale order.");
@@ -301,7 +302,7 @@ export default function SalesPage() {
                   <TableCell>
                     <QuantityInput
                       defaultValue={product.quantity || 1}
-                      min={1}
+                      min={0.001}
                       className={`w-16 p-1 border rounded ${
                         product.quantity > (product.in_stock ?? Infinity) ? "border-red-500" : ""
                       }`}

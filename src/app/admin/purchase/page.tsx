@@ -189,10 +189,11 @@ export default function PurchasePage() {
       if (!response.ok) throw new Error("Failed to create purchase order");
 
       // Clear form
-      await fetchProducts();
-      setItems([]);
-      setSelectedAccount(null);
-      setPaidAmount("");
+      window.location.reload();
+      // await fetchProducts();
+      // setItems([]);
+      // setSelectedAccount(null);
+      // setPaidAmount("");
     } catch (error) {
       console.error("Error creating purchase order:", error);
       setErrorMessage("Failed to create purchase order.");
@@ -304,8 +305,8 @@ export default function PurchasePage() {
                   </TableCell>
                   <TableCell>
                     <QuantityInput
-                      defaultValue={product.quantity}
-                      min={1}
+                      defaultValue={product.quantity || 1}
+                      min={0.001}
                       className="w-16 p-1 border rounded"
                       onChange={(val) => handleQuantityChange(product.id, val)}
                     />
