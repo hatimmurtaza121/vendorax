@@ -21,7 +21,8 @@ import StatusBadge from "@/components/ui/statusbadge";
 import { 
   FilePenIcon, 
   TrashIcon,
-  PlusCircle
+  PlusCircle,
+  FilterIcon
 } from "lucide-react";
 import {
   Dialog,
@@ -42,7 +43,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 type TransactionType = "income" | "expense";
 
@@ -71,6 +80,10 @@ export default function Cashier() {
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [filters, setFilters] = useState<{ status: string; type: string }>({
+    status: "all",
+    type: "all",
+  });
   const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
     description: "",
     category: "",
@@ -78,6 +91,10 @@ export default function Cashier() {
     paid_amount: 0,
     amount: 0,
   });
+
+  const handleFilterChange = (key: "status" | "type", value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -233,8 +250,48 @@ export default function Cashier() {
     <>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>Manage your transactions.</CardDescription>
+          <div className="flex items-center justify-start">
+            <div>
+              <CardTitle>Transactions</CardTitle>
+              <CardDescription>Manage your transactions.</CardDescription>
+            </div>
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <FilterIcon className="w-4 h-4" />
+                <span>Filters</span>
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-48">
+              {/* Type Filter */}
+              <DropdownMenuLabel className="mt-2">Filter by Type</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {["all", "income", "expense"].map((tp) => (
+                <DropdownMenuCheckboxItem
+                  key={`type-${tp}`}
+                  checked={filters.type === tp}
+                  onCheckedChange={() => handleFilterChange("type", tp)}
+                >
+                  {tp.charAt(0).toUpperCase() + tp.slice(1)}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {/* Status Filter */}
+              <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {["all", "paid", "unpaid", "partial"].map((st) => (
+                <DropdownMenuCheckboxItem
+                  key={`status-${st}`}
+                  checked={filters.status === st}
+                  onCheckedChange={() => handleFilterChange("status", st)}
+                >
+                  {st.charAt(0).toUpperCase() + st.slice(1)}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -321,6 +378,10 @@ export default function Cashier() {
               </TableRow>
 
               {[...transactions]
+                .filter((t) =>
+                  (filters.status === "all" || t.status === filters.status) &&
+                  (filters.type === "all" || t.type === filters.type)
+                )
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .map((transaction) => (
                   <TableRow key={transaction.id}>

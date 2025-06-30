@@ -341,7 +341,7 @@ const [newAccountType, setnewAccountType] = useState<"customer" | "supplier">("c
                   checked={filters.status === "all"}
                   onCheckedChange={() => handleFilterChange("all")}
                 >
-                  All Statuses
+                  All
                 </DropdownMenuCheckboxItem>
                 <DropdownMenuCheckboxItem
                   checked={filters.status === "active"}

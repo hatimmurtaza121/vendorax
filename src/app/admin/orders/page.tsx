@@ -279,11 +279,14 @@ export default function OrdersPage() {
   const [isOrderCancelled, setIsOrderCancelled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [nextPayment, setNextPayment] = useState<number | "">("");
-  const [filters, setFilters] = useState({ status: "all" });
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [filters, setFilters] = useState<{ status: string; type: string }>({
+      status: "all",
+      type: "all",
+    });
   const [company, setCompany] = useState({
     name: "",
     address: "",
@@ -325,17 +328,20 @@ export default function OrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      if (filters.status !== "all" && order.status !== filters.status) {
+      if (filters.status !== "all" && order.transactions?.[0]?.status !== filters.status) {
+        return false;
+      }
+      if (filters.type !== "all" && order.type !== filters.type) {
         return false;
       }
       return true;
     });
-  }, [orders, filters.status]);
+  }, [orders, filters.status, filters.type]);
 
   const handleCreateRedirect = () => router.push("/admin/sale");
 
-  const handleFilterChange = (type: "status", value: string) => {
-    setFilters(prev => ({ ...prev, [type]: value }));
+  const handleFilterChange = (key: "status" | "type", value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
   
   async function handleDeleteOrder() {
@@ -498,22 +504,35 @@ export default function OrdersPage() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <FilterIcon className="w-4 h-4" />
-                    <span>Filters</span>
+                  <Button variant="outline" className="ml-2">
+                    <FilterIcon className="w-4 h-4 mr-2" />
+                    Filters
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {['all','pending','completed','cancelled'].map(st => (
-                  <DropdownMenuCheckboxItem
-                    key={st}
-                    checked={filters.status === st}
-                    onCheckedChange={() => handleFilterChange('status', st)}
-                  >{st.charAt(0).toUpperCase()+st.slice(1)}</DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel className="mt-2">Filter by Type</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["all", "sale", "purchase"].map((tp) => (
+                    <DropdownMenuCheckboxItem
+                      key={`type-${tp}`}
+                      checked={filters.type === tp}
+                      onCheckedChange={() => handleFilterChange("type", tp)}
+                    >
+                      {tp.charAt(0).toUpperCase() + tp.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["all", "paid", "unpaid", "partial"].map((st) => (
+                    <DropdownMenuCheckboxItem
+                      key={`status-${st}`}
+                      checked={filters.status === st}
+                      onCheckedChange={() => handleFilterChange("status", st)}
+                    >
+                      {st.charAt(0).toUpperCase() + st.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
               </DropdownMenu>
 
             </div>

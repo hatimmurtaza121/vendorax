@@ -234,22 +234,29 @@ export default function Products() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const filtered = products.filter((product) => {
+    return products.filter((product) => {
+      // Category filter
       if (filters.category !== "all" && product.category !== filters.category) {
         return false;
       }
-      if (
-        filters.inStock !== "all" &&
-        filters.inStock === "in-stock" &&
-        product.in_stock === 0
-      ) {
+
+      // Stock filter
+      if (filters.inStock === "in-stock" && product.in_stock <= 0) {
         return false;
       }
-      return product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
+      if (filters.inStock === "out-of-stock" && product.in_stock > 0) {
+        return false;
+      }
 
-    return [...filtered];
+      // Search filter
+      if (!product.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+
+      return true;
+    });
   }, [products, filters.category, filters.inStock, searchTerm]);
+
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -334,6 +341,14 @@ export default function Products() {
                     }
                   >
                     Spices
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filters.category === "stationery"}
+                    onCheckedChange={() =>
+                      handleFilterChange("category", "stationery")
+                    }
+                  >
+                    Stationery
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
