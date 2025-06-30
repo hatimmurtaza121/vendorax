@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -297,7 +297,6 @@ export default function OrdersPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     async function fetchAll() {
@@ -330,11 +329,16 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    const filterParam = searchParams.get("filter");
-    if (filterParam === "pending") {
-      setFilters((prev) => ({ ...prev, orderStatus: ["pending"] }));
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const filterParam = params.get("filter");
+      if (filterParam === "credit") {
+        setFilters({ status: ["unpaid", "partial"], type: ["income"], orderStatus: ["all"] });
+      } else if (filterParam === "debit") {
+        setFilters({ status: ["unpaid", "partial"], type: ["expense"], orderStatus: ["all"] });
+      }
     }
-  }, [searchParams]);
+  }, [router]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -521,7 +525,7 @@ export default function OrdersPage() {
   }
   
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <>
       {error && <div className="text-red-600 p-4">{error}</div>}
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
@@ -794,6 +798,6 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Suspense>
+    </>
   );
 } 

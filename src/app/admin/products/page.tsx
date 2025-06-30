@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -51,7 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Product {
   id: number;
@@ -100,7 +100,7 @@ export default function Products() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
-  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const resetSelectedProduct = () => {
     setSelectedProductId(null);
@@ -236,13 +236,14 @@ export default function Products() {
   }, []);
 
   useEffect(() => {
-    const filterParam = searchParams.get("filter");
-    if (filterParam === "low-stock") {
-      setFilters((prev) => ({ ...prev, inStock: ["low-stock"] }));
-    } else if (filterParam === "out-of-stock") {
-      setFilters((prev) => ({ ...prev, inStock: ["out-of-stock"] }));
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const filterParam = params.get("filter");
+      if (filterParam === "credit" || filterParam === "debit") {
+        setFilters({ category: ["all"], inStock: ["all"] });
+      }
     }
-  }, [searchParams]);
+  }, [router]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -306,7 +307,7 @@ export default function Products() {
   }
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <>
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
           <div className="flex items-center justify-between">
@@ -737,6 +738,6 @@ export default function Products() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Suspense>
+    </>
   );
 }

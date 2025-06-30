@@ -34,7 +34,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { EllipsisVerticalIcon, Loader2Icon } from "lucide-react";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatDate } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,7 +53,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 type TransactionType = "income" | "expense";
 
@@ -70,7 +70,7 @@ interface Transaction {
 }
 
 export default function Cashier() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
@@ -255,13 +255,16 @@ export default function Cashier() {
   }, []);
 
   useEffect(() => {
-    const filterParam = searchParams.get("filter");
-    if (filterParam === "credit") {
-      setFilters({ status: ["unpaid", "partial"], type: ["income"] });
-    } else if (filterParam === "debit") {
-      setFilters({ status: ["unpaid", "partial"], type: ["expense"] });
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const filterParam = params.get("filter");
+      if (filterParam === "credit") {
+        setFilters({ status: ["unpaid", "partial"], type: ["income"] });
+      } else if (filterParam === "debit") {
+        setFilters({ status: ["unpaid", "partial"], type: ["expense"] });
+      }
     }
-  }, [searchParams]);
+  }, [router]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -276,7 +279,7 @@ export default function Cashier() {
   }
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <>
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between w-full gap-4">
@@ -647,6 +650,6 @@ export default function Cashier() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Suspense>
+    </>
   );
 }
