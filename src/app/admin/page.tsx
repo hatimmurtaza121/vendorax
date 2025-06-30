@@ -63,7 +63,7 @@ export default function Page() {
             <CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rs {Number(summary.totalRevenue || 0)}
+                Rs {Math.floor(Number(summary.totalRevenue || 0))}
               </div>
             </CardContent>
           </Card>
@@ -73,7 +73,7 @@ export default function Page() {
             <CardHeader><CardTitle>Cost of Goods Sold (COGS)</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rs {Number(summary.cogs || 0)}
+                Rs {Math.floor(Number(summary.cogs || 0))}
               </div>
             </CardContent>
           </Card>
@@ -83,7 +83,7 @@ export default function Page() {
             <CardHeader><CardTitle>Gross Profit</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rs {Number(summary.grossProfit || 0)}
+                Rs {Math.floor(Number(summary.grossProfit || 0))}
               </div>
             </CardContent>
           </Card>
@@ -93,7 +93,7 @@ export default function Page() {
             <CardHeader><CardTitle>Net Profit</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rs {Number(summary.netProfit || 0)}
+                Rs {Math.floor(Number(summary.netProfit || 0))}
               </div>
             </CardContent>
           </Card>
@@ -103,7 +103,7 @@ export default function Page() {
             <CardHeader><CardTitle>Total Income In Hand</CardTitle></CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rs {Number(summary.incomeInHand || 0)}
+                Rs {Math.floor(Number(summary.incomeInHand || 0))}
               </div>
             </CardContent>
           </Card>
@@ -111,7 +111,7 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Sales This Month</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.salesThisMonth || 0)}</div>
+              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.salesThisMonth || 0))}</div>
             </CardContent>
           </Card>
         </div>
@@ -119,13 +119,13 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.creditToCollect || 0)}</div>
+              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.creditToCollect || 0))}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.debitToPay || 0)}</div>
+              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.debitToPay || 0))}</div>
             </CardContent>
           </Card>
         </div>
@@ -138,7 +138,7 @@ export default function Page() {
           <Card>
             <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Rs {Number(summary.totalInventory || 0)}</div>
+              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.totalInventory || 0))}</div>
             </CardContent>
           </Card>
           <Card>
