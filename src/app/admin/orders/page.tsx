@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
@@ -521,7 +521,7 @@ export default function OrdersPage() {
   }
   
   return (
-    <>
+    <Suspense fallback={<div>Loading...</div>}>
       {error && <div className="text-red-600 p-4">{error}</div>}
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
@@ -794,6 +794,6 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </Suspense>
   );
 } 

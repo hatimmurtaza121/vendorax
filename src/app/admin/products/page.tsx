@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -306,7 +306,7 @@ export default function Products() {
   }
 
   return (
-    <>
+    <Suspense fallback={<div>Loading...</div>}>
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
           <div className="flex items-center justify-between">
@@ -737,6 +737,6 @@ export default function Products() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </Suspense>
   );
 }

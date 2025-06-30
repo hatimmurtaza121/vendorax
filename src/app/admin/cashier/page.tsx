@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -34,7 +34,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { EllipsisVerticalIcon, Loader2Icon } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { formatDate } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
@@ -276,7 +276,7 @@ export default function Cashier() {
   }
 
   return (
-    <>
+    <Suspense fallback={<div>Loading...</div>}>
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between w-full gap-4">
@@ -647,6 +647,6 @@ export default function Cashier() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </Suspense>
   );
 }
