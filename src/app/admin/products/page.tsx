@@ -51,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSearchParams } from "next/navigation";
 
 interface Product {
   id: number;
@@ -79,9 +80,9 @@ export default function Products() {
   ];
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    category: "all",
-    inStock: "all",
+  const [filters, setFilters] = useState<{ category: string[]; inStock: string[] }>({
+    category: ["all"],
+    inStock: ["all"],
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(10);
@@ -99,6 +100,7 @@ export default function Products() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
+  const searchParams = useSearchParams();
 
   const resetSelectedProduct = () => {
     setSelectedProductId(null);
@@ -233,26 +235,37 @@ export default function Products() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam === "low-stock") {
+      setFilters((prev) => ({ ...prev, inStock: ["low-stock"] }));
+    } else if (filterParam === "out-of-stock") {
+      setFilters((prev) => ({ ...prev, inStock: ["out-of-stock"] }));
+    }
+  }, [searchParams]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       // Category filter
-      if (filters.category !== "all" && product.category !== filters.category) {
+      if (!filters.category.includes("all") && !filters.category.includes(product.category)) {
         return false;
       }
-
       // Stock filter
-      if (filters.inStock === "in-stock" && product.in_stock <= 0) {
-        return false;
+      if (!filters.inStock.includes("all")) {
+        if (filters.inStock.includes("in-stock") && product.in_stock > 0) {
+          // pass
+        } else if (filters.inStock.includes("out-of-stock") && product.in_stock === 0) {
+          // pass
+        } else if (filters.inStock.includes("low-stock") && product.in_stock > 0 && product.in_stock < 5) {
+          // pass
+        } else {
+          return false;
+        }
       }
-      if (filters.inStock === "out-of-stock" && product.in_stock > 0) {
-        return false;
-      }
-
       // Search filter
       if (!product.name.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-
       return true;
     });
   }, [products, filters.category, filters.inStock, searchTerm]);
@@ -319,60 +332,47 @@ export default function Products() {
                   <DropdownMenuLabel>Filter by</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
-                    checked={filters.category === "all"}
-                    onCheckedChange={() =>
-                      handleFilterChange("category", "all")
-                    }
-                  >
-                    All Categories
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.category === "dry_fruits"}
-                    onCheckedChange={() =>
-                      handleFilterChange("category", "dry_fruits")
-                    }
-                  >
-                    Dry Fruits
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.category === "spices"}
-                    onCheckedChange={() =>
-                      handleFilterChange("category", "spices")
-                    }
-                  >
-                    Spices
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={filters.category === "stationery"}
-                    onCheckedChange={() =>
-                      handleFilterChange("category", "stationery")
-                    }
-                  >
-                    Stationery
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={filters.inStock === "all"}
+                    checked={filters.inStock.includes("all")}
                     onCheckedChange={() => handleFilterChange("inStock", "all")}
                   >
                     All Stock
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={filters.inStock === "in-stock"}
-                    onCheckedChange={() =>
-                      handleFilterChange("inStock", "in-stock")
-                    }
+                    checked={filters.inStock.includes("in-stock")}
+                    onCheckedChange={() => handleFilterChange("inStock", "in-stock")}
                   >
                     In Stock
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
-                    checked={filters.inStock === "out-of-stock"}
-                    onCheckedChange={() =>
-                      handleFilterChange("inStock", "out-of-stock")
-                    }
+                    checked={filters.inStock.includes("out-of-stock")}
+                    onCheckedChange={() => handleFilterChange("inStock", "out-of-stock")}
                   >
                     Out of Stock
                   </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={filters.inStock.includes("low-stock")}
+                    onCheckedChange={() => handleFilterChange("inStock", "low-stock")}
+                  >
+                    Low Stock (&lt;5)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={filters.category.includes("all")}
+                    onCheckedChange={() => handleFilterChange("category", "all")}
+                  >
+                    All Categories
+                  </DropdownMenuCheckboxItem>
+                  {categories
+                    .filter(cat => products.some(p => p.category === cat.value))
+                    .map((cat) => (
+                      <DropdownMenuCheckboxItem
+                        key={cat.value}
+                        checked={filters.category.includes(cat.value)}
+                        onCheckedChange={() => handleFilterChange("category", cat.value)}
+                      >
+                        {cat.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

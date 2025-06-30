@@ -23,6 +23,7 @@ import {
   Line,
   LineChart,
 } from "recharts";
+import Link from "next/link";
 
 export default function Page() {
   const [summary, setSummary] = useState<any>(null);
@@ -116,18 +117,22 @@ export default function Page() {
           </Card>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4">
-          <Card>
-            <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.creditToCollect || 0))}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.debitToPay || 0))}</div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/cashier?filter=credit" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Credit to Collect</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.creditToCollect || 0))}</div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/cashier?filter=debit" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Debit to Pay</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.debitToPay || 0))}</div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
 
@@ -135,24 +140,30 @@ export default function Page() {
       <div>
         <h2 className="text-xl font-semibold mb-2">Inventory Status</h2>
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-3">
-          <Card>
-            <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.totalInventory || 0))}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Low Stock (&lt;5)</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.lowStockItems}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Out of Stock Items</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.outOfStockItems}</div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/products" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Total Inventory</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">Rs {Math.floor(Number(summary.totalInventory || 0))}</div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/products?filter=low-stock" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Low Stock (&lt;5)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summary.lowStockItems}</div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/products?filter=out-of-stock" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Out of Stock Items</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summary.outOfStockItems}</div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
 
@@ -160,12 +171,14 @@ export default function Page() {
       <div>
         <h2 className="text-xl font-semibold mb-2">Orders</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Card>
-            <CardHeader><CardTitle>Pending Orders</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.ordersPending}</div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/orders?filter=pending" className="block">
+            <Card className="cursor-pointer transition-shadow hover:shadow-lg hover:shadow-blue-400">
+              <CardHeader><CardTitle>Pending Orders</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summary.ordersPending}</div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
 

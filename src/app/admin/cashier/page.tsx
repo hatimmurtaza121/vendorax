@@ -22,7 +22,8 @@ import {
   FilePenIcon, 
   TrashIcon,
   PlusCircle,
-  FilterIcon
+  FilterIcon,
+  SearchIcon
 } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +53,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useSearchParams } from "next/navigation";
 
 type TransactionType = "income" | "expense";
 
@@ -68,6 +70,7 @@ interface Transaction {
 }
 
 export default function Cashier() {
+  const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
@@ -80,9 +83,9 @@ export default function Cashier() {
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [filters, setFilters] = useState<{ status: string; type: string }>({
-    status: "all",
-    type: "all",
+  const [filters, setFilters] = useState<{ status: string[]; type: string[] }>({
+    status: ["all"],
+    type: ["all"],
   });
   const [newTransaction, setNewTransaction] = useState<Partial<Transaction>>({
     description: "",
@@ -91,9 +94,22 @@ export default function Cashier() {
     paid_amount: 0,
     amount: 0,
   });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleFilterChange = (key: "status" | "type", value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      if (value === "all") {
+        return { ...prev, [key]: ["all"] };
+      }
+      const arr = prev[key];
+      if (arr.includes(value)) {
+        const filtered = arr.filter((v) => v !== value);
+        return { ...prev, [key]: filtered.length === 0 ? ["all"] : filtered };
+      } else {
+        const filtered = arr.filter((v) => v !== "all");
+        return { ...prev, [key]: [...filtered, value] };
+      }
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,6 +254,19 @@ export default function Cashier() {
     fetchTransactions();
   }, []);
 
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam === "credit") {
+      setFilters({ status: ["unpaid", "partial"], type: ["income"] });
+    } else if (filterParam === "debit") {
+      setFilters({ status: ["unpaid", "partial"], type: ["expense"] });
+    }
+  }, [searchParams]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
   if (loading) {
     return (
       <div className="h-[80vh] flex items-center justify-center">
@@ -250,47 +279,53 @@ export default function Cashier() {
     <>
       <Card className="w-full">
         <CardHeader>
-          <div className="flex items-center justify-start">
-            <div>
-              <CardTitle>Transactions</CardTitle>
-              <CardDescription>Manage your transactions.</CardDescription>
+          <div className="flex items-center justify-between w-full gap-4">
+            <div className="flex items-center gap-4 w-full">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search transactions..."
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="pr-8"
+                />
+                <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <FilterIcon className="w-4 h-4" />
+                    <span>Filters</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {/* Type Filter */}
+                  <DropdownMenuLabel className="mt-2">Filter by Type</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["all", "income", "expense"].map((tp) => (
+                    <DropdownMenuCheckboxItem
+                      key={`type-${tp}`}
+                      checked={filters.type.includes(tp)}
+                      onCheckedChange={() => handleFilterChange("type", tp)}
+                    >
+                      {tp.charAt(0).toUpperCase() + tp.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {/* Status Filter */}
+                  <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["all", "paid", "unpaid", "partial"].map((st) => (
+                    <DropdownMenuCheckboxItem
+                      key={`status-${st}`}
+                      checked={filters.status.includes(st)}
+                      onCheckedChange={() => handleFilterChange("status", st)}
+                    >
+                      {st.charAt(0).toUpperCase() + st.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1">
-                <FilterIcon className="w-4 h-4" />
-                <span>Filters</span>
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" className="w-48">
-              {/* Type Filter */}
-              <DropdownMenuLabel className="mt-2">Filter by Type</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {["all", "income", "expense"].map((tp) => (
-                <DropdownMenuCheckboxItem
-                  key={`type-${tp}`}
-                  checked={filters.type === tp}
-                  onCheckedChange={() => handleFilterChange("type", tp)}
-                >
-                  {tp.charAt(0).toUpperCase() + tp.slice(1)}
-                </DropdownMenuCheckboxItem>
-              ))}
-              {/* Status Filter */}
-              <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {["all", "paid", "unpaid", "partial"].map((st) => (
-                <DropdownMenuCheckboxItem
-                  key={`status-${st}`}
-                  checked={filters.status === st}
-                  onCheckedChange={() => handleFilterChange("status", st)}
-                >
-                  {st.charAt(0).toUpperCase() + st.slice(1)}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           </div>
         </CardHeader>
         <CardContent>
@@ -378,10 +413,14 @@ export default function Cashier() {
               </TableRow>
 
               {[...transactions]
-                .filter((t) =>
-                  (filters.status === "all" || t.status === filters.status) &&
-                  (filters.type === "all" || t.type === filters.type)
-                )
+                .filter((t) => {
+                  const statusMatch = filters.status.includes("all") || filters.status.includes(t.status);
+                  const typeMatch = filters.type.includes("all") || filters.type.includes(t.type);
+                  const searchMatch =
+                    t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    t.category.toLowerCase().includes(searchTerm.toLowerCase());
+                  return statusMatch && typeMatch && searchMatch;
+                })
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .map((transaction) => (
                   <TableRow key={transaction.id}>

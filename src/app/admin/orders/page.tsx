@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -283,10 +283,11 @@ export default function OrdersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [nextPaymentError, setNextPaymentError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
-  const [filters, setFilters] = useState<{ status: string; type: string }>({
-      status: "all",
-      type: "all",
-    });
+  const [filters, setFilters] = useState<{ status: string[]; type: string[]; orderStatus: string[] }>({
+    status: ["all"],
+    type: ["all"],
+    orderStatus: ["all"],
+  });
   const [company, setCompany] = useState({
     name: "",
     address: "",
@@ -294,7 +295,9 @@ export default function OrdersPage() {
     email: "",
     logo_url: ""
   });
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     async function fetchAll() {
@@ -326,22 +329,52 @@ export default function OrdersPage() {
     fetchAll();
   }, []);
 
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam === "pending") {
+      setFilters((prev) => ({ ...prev, orderStatus: ["pending"] }));
+    }
+  }, [searchParams]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      if (filters.status !== "all" && order.transactions?.[0]?.status !== filters.status) {
-        return false;
-      }
-      if (filters.type !== "all" && order.type !== filters.type) {
-        return false;
-      }
-      return true;
+      // Payment status
+      const statusMatch =
+        filters.status.includes("all") ||
+        (order.transactions && filters.status.includes(order.transactions[0]?.status));
+      // Type
+      const typeMatch =
+        filters.type.includes("all") || filters.type.includes(order.type);
+      // Order status
+      const orderStatusMatch =
+        filters.orderStatus.includes("all") || filters.orderStatus.includes(order.status);
+      // Search
+      const searchMatch =
+        !searchTerm || order.accounts?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return statusMatch && typeMatch && orderStatusMatch && searchMatch;
     });
-  }, [orders, filters.status, filters.type]);
+  }, [orders, filters.status, filters.type, filters.orderStatus, searchTerm]);
 
   const handleCreateRedirect = () => router.push("/admin/sale");
 
-  const handleFilterChange = (key: "status" | "type", value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const handleFilterChange = (key: "status" | "type" | "orderStatus", value: string) => {
+    setFilters((prev) => {
+      if (value === "all") {
+        return { ...prev, [key]: ["all"] };
+      }
+      const arr = prev[key];
+      if (arr.includes(value)) {
+        const filtered = arr.filter((v) => v !== value);
+        return { ...prev, [key]: filtered.length === 0 ? ["all"] : filtered };
+      } else {
+        const filtered = arr.filter((v) => v !== "all");
+        return { ...prev, [key]: [...filtered, value] };
+      }
+    });
   };
   
   async function handleDeleteOrder() {
@@ -492,12 +525,14 @@ export default function OrdersPage() {
       {error && <div className="text-red-600 p-4">{error}</div>}
       <Card className="flex flex-col gap-6 p-6">
         <CardHeader className="p-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between w-full gap-4">
+            <div className="flex items-center gap-4 w-full">
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="Search orders..."
+                  placeholder="Search by account..."
+                  value={searchTerm}
+                  onChange={handleSearch}
                   className="pr-8"
                 />
                 <SearchIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -509,27 +544,41 @@ export default function OrdersPage() {
                     Filters
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Type Filter */}
                   <DropdownMenuLabel className="mt-2">Filter by Type</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {["all", "sale", "purchase"].map((tp) => (
                     <DropdownMenuCheckboxItem
                       key={`type-${tp}`}
-                      checked={filters.type === tp}
+                      checked={filters.type.includes(tp)}
                       onCheckedChange={() => handleFilterChange("type", tp)}
                     >
                       {tp.charAt(0).toUpperCase() + tp.slice(1)}
                     </DropdownMenuCheckboxItem>
                   ))}
+                  {/* Payment Status Filter */}
                   <DropdownMenuLabel>Filter by Payment Status</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {["all", "paid", "unpaid", "partial"].map((st) => (
                     <DropdownMenuCheckboxItem
                       key={`status-${st}`}
-                      checked={filters.status === st}
+                      checked={filters.status.includes(st)}
                       onCheckedChange={() => handleFilterChange("status", st)}
                     >
                       {st.charAt(0).toUpperCase() + st.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {/* Order Status Filter */}
+                  <DropdownMenuLabel>Filter by Order Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["all", "completed", "pending", "cancelled"].map((os) => (
+                    <DropdownMenuCheckboxItem
+                      key={`orderStatus-${os}`}
+                      checked={filters.orderStatus.includes(os)}
+                      onCheckedChange={() => handleFilterChange("orderStatus", os)}
+                    >
+                      {os.charAt(0).toUpperCase() + os.slice(1)}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>
