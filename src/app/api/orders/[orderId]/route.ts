@@ -152,7 +152,7 @@ export async function DELETE(
 
   const orderId = params.orderId;
 
-  // ── Step 1: Get order and its type ─────────────
+  // Step 1: Get order and its type
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .select("id, type")
@@ -166,7 +166,7 @@ export async function DELETE(
     );
   }
 
-  // ── Step 2: Get related order items ───────────
+  // Step 2: Get related order items
   const { data: items, error: itemsFetchErr } = await supabase
     .from("order_items")
     .select("id, order_id, product_id, quantity, price")
@@ -179,13 +179,13 @@ export async function DELETE(
     );
   }
 
-  // Step 2.5: Recalculate cost_price now that deleted item is gone
+  // Step 2.5: Recalculate cost_price if type is purchase
   if (order.type === "purchase") {
     for (const item of items) {
       const { error: recalcErr } = await supabase.rpc("recalculate_cost_price", {
         _product_id: item.product_id,
-        _purchase_price: item.price,      // purchase price of the removed item
-        _quantity_removed: item.quantity, // quantity of the removed item
+        _purchase_price: item.price,
+        _quantity_removed: item.quantity,
       });
       if (recalcErr) {
         console.error("Cost price recalculation failed", recalcErr.message);
@@ -193,7 +193,7 @@ export async function DELETE(
     }
   }
 
-  // ── Step 3: Reverse stock changes ─────────────
+  // Step 3: Reverse stock changes
   for (const item of items) {
     const { data: prod, error: prodErr } = await supabase
       .from("products")
@@ -205,8 +205,8 @@ export async function DELETE(
 
     const updatedStock =
       order.type === "purchase"
-        ? prod.in_stock - item.quantity // remove previously added stock
-        : prod.in_stock + item.quantity; // restore stock reduced during sale
+        ? prod.in_stock - item.quantity
+        : prod.in_stock + item.quantity;
 
     await supabase
       .from("products")
@@ -214,30 +214,13 @@ export async function DELETE(
       .eq("id", item.product_id);
   }
 
-  // ── Step 4: Delete transactions ───────────────
-  const { error: txnErr } = await supabase
-    .from("transactions")
-    .delete()
-    .eq("order_id", orderId);
-  if (txnErr) {
-    return NextResponse.json({ error: txnErr.message }, { status: 500 });
-  }
-
-  // ── Step 5: Delete order items ────────────────
-  const { error: itemsErr } = await supabase
-    .from("order_items")
-    .delete()
-    .eq("order_id", orderId);
-  if (itemsErr) {
-    return NextResponse.json({ error: itemsErr.message }, { status: 500 });
-  }
-
-  // ── Step 6: Delete the order itself ───────────
+  // Step 4: Delete the order (this will auto-delete transactions + order_items)
   const { error: deleteErr } = await supabase
     .from("orders")
     .delete()
     .eq("id", orderId)
     .eq("user_uid", user.id);
+
   if (deleteErr) {
     return NextResponse.json({ error: deleteErr.message }, { status: 500 });
   }
